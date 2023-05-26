@@ -3,3 +3,4 @@ function-app.zip
 terraform.tfstate*
 *.swp
 settings.auto.tfvars
+.terraform.lock.hcl
