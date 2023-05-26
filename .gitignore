@@ -1,0 +1,5 @@
+function-app.zip
+*.terraform
+terraform.tfstate*
+*.swp
+settings.auto.tfvars
