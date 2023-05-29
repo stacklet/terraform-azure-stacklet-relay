@@ -36,13 +36,13 @@ def get_session(client_id, audience, role_arn):
 def main(msg: func.QueueMessage):
     client_id = os.environ['AZURE_CLIENT_ID']
     audience = os.environ['AZURE_AUDIENCE']
+    subscription = os.environ['AZURE_SUBSCRIPTION_ID']
 
     target_account = os.environ["AWS_TARGET_ACCOUNT"]
-    subscription = os.environ['AZURE_SUBSCRIPTION_ID']
+    region = os.environ['AWS_TARGET_REGION']
     # TODO: change this
     role_name = "sonny4-azure-assume-role"
     role_arn = f"arn:aws:iam::{target_account}:role/{role_name}"
-    region = os.environ['AWS_TARGET_REGION']
 
     session = get_session(client_id, audience, role_arn)
 
