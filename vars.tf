@@ -1,19 +1,19 @@
 variable "prefix" {
-  type    = string
+  type = string
 }
 
 variable "role" {
-  type    = string
+  type = string
 }
 
 variable "resource_group_location" {
-  type    = string
+  type = string
 }
 
 variable "event_grid_topic_name" {
-  type    = string
+  type = string
 }
 
 variable "event_grid_topic_resource_group" {
-  type    = string
+  type = string
 }
