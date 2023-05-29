@@ -56,7 +56,7 @@ resource "azuread_service_principal" "stacklet_sp" {
 }
 
 resource "azurerm_role_assignment" "stacklet" {
-  count = 0
+  count                = 0
   scope                = data.azurerm_subscription.current.id
   role_definition_name = var.role
   principal_id         = azuread_application.stacklet_application.object_id

@@ -33,10 +33,10 @@ resource "azurerm_linux_function_app" "stacklet" {
     APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.stacklet.instrumentation_key
     AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
     AZURE_AUDIENCE                 = local.audience
-    AZURE_STORAGE_QUEUE_NAME = azurerm_storage_queue.stacklet.name
-    AZURE_SUBSCRIPTION_ID = data.azurerm_subscription.current.subscription_id
-    AWS_TARGET_ACCOUNT = var.aws_target_account
-    AWS_TARGET_REGION = var.aws_target_region
+    AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
+    AZURE_SUBSCRIPTION_ID          = data.azurerm_subscription.current.subscription_id
+    AWS_TARGET_ACCOUNT             = var.aws_target_account
+    AWS_TARGET_REGION              = var.aws_target_region
   }
 
   identity {
@@ -49,7 +49,7 @@ resource "null_resource" "function_deploy" {
   depends_on = ["azurerm_linux_function_app.stacklet"]
   # ensures that publish always runs
   triggers = {
-      build_number = "${timestamp()}"
+    build_number = "${timestamp()}"
   }
   provisioner "local-exec" {
     command = <<EOF

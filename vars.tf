@@ -19,9 +19,9 @@ variable "event_grid_topic_resource_group" {
 }
 
 variable "aws_target_account" {
-  type  = string
+  type = string
 }
 
 variable "aws_target_region" {
-  type  = string
+  type = string
 }
