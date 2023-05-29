@@ -17,3 +17,11 @@ variable "event_grid_topic_name" {
 variable "event_grid_topic_resource_group" {
   type = string
 }
+
+variable "aws_target_account" {
+  type  = string
+}
+
+variable "aws_target_region" {
+  type  = string
+}
