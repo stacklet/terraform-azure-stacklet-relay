@@ -53,7 +53,7 @@ variable "tags" {
 }
 
 variable "event_names" {
-  type = list(string)
+  type        = list(string)
   description = "Event Names to filter"
   default = [
     "Microsoft.Resources.ResourceWriteSuccess",
