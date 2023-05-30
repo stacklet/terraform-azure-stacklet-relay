@@ -28,13 +28,13 @@ def get_session(client_id, audience, role_arn):
         aws_secret_access_key=res["Credentials"]["SecretAccessKey"],
         aws_session_token=res["Credentials"]["SessionToken"],
     )
+    logging.info("Got session")
     return session
 
 
 def main(msg: func.QueueMessage):
     client_id = os.environ["AZURE_CLIENT_ID"]
     audience = os.environ["AZURE_AUDIENCE"]
-    subscription = os.environ["AZURE_SUBSCRIPTION_ID"]
 
     target_account = os.environ["AWS_TARGET_ACCOUNT"]
     region = os.environ["AWS_TARGET_REGION"]
@@ -47,15 +47,15 @@ def main(msg: func.QueueMessage):
 
     body_string = msg.get_body().decode("utf-8")
     body = json.loads(body_string)
-    op = body["data"]["operationName"]
+    source = body["data"]["operationName"].split('/')[0]
 
     try:
         events_client.put_events(
             Entries=[
                 {
                     "Time": msg.insertion_time,
-                    "Source": subscription,
-                    "DetailType": f"CloudEvent/azure/{op}",
+                    "Source": source,
+                    "DetailType": "CloudEvent/Azure System Topic Event",
                     "Detail": body_string,
                     "EventBusName": os.environ["AWS_TARGET_EVENT_BUS"],
                 }
