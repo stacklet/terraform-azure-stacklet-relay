@@ -4,3 +4,5 @@ terraform.tfstate*
 *.swp
 settings.auto.tfvars
 .terraform.lock.hcl
+function-app-v1/ProviderRelay/function.json
+venv

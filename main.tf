@@ -14,12 +14,14 @@ resource "random_uuid" "app_role_uuid" {}
 resource "azurerm_resource_group" "stacklet_rg" {
   name     = var.prefix
   location = var.resource_group_location
+  tags     = local.tags
 }
 
 resource "azurerm_user_assigned_identity" "stacklet_identity" {
   location            = azurerm_resource_group.stacklet_rg.location
   name                = "${var.prefix}-identity"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
+  tags                = local.tags
 }
 
 resource "azuread_application" "stacklet_application" {
@@ -53,13 +55,6 @@ resource "azuread_service_principal" "stacklet_sp" {
   feature_tags {
     enterprise = true
   }
-}
-
-resource "azurerm_role_assignment" "stacklet" {
-  count                = 0
-  scope                = data.azurerm_subscription.current.id
-  role_definition_name = var.role
-  principal_id         = azuread_application.stacklet_application.object_id
 }
 
 resource "null_resource" "stacklet" {
