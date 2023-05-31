@@ -1,14 +1,9 @@
-data "archive_file" "function_app" {
-  type        = "zip"
-  source_dir  = "function-app"
-  output_path = "function-app.zip"
-}
-
 resource "azurerm_application_insights" "stacklet" {
   name                = "${var.prefix}-appinsights"
   location            = azurerm_resource_group.stacklet_rg.location
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   application_type    = "web"
+  tags                = local.tags
 }
 
 resource "azurerm_service_plan" "stacklet" {
@@ -17,6 +12,7 @@ resource "azurerm_service_plan" "stacklet" {
   location            = azurerm_resource_group.stacklet_rg.location
   os_type             = "Linux"
   sku_name            = "Y1"
+  tags                = local.tags
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
@@ -27,7 +23,6 @@ resource "azurerm_linux_function_app" "stacklet" {
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
   service_plan_id            = azurerm_service_plan.stacklet.id
-  zip_deploy_file            = data.archive_file.function_app.output_path
 
   site_config {
     application_stack {
@@ -38,34 +33,44 @@ resource "azurerm_linux_function_app" "stacklet" {
   app_settings = {
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
     APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.stacklet.instrumentation_key
+    AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
+    AZURE_AUDIENCE                 = local.audience
+    AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
+    AZURE_SUBSCRIPTION_ID          = data.azurerm_subscription.current.subscription_id
+    AWS_TARGET_ACCOUNT             = var.aws_target_account
+    AWS_TARGET_REGION              = var.aws_target_region
+    AWS_TARGET_ROLE_NAME           = var.aws_target_role_name
+    AWS_TARGET_PARTITION           = var.aws_target_partition
+    AWS_TARGET_EVENT_BUS           = var.aws_target_event_bus
   }
 
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.stacklet_identity.id]
   }
+  tags = local.tags
 }
 
-resource "azurerm_function_app_function" "stacklet" {
-  name            = "provider-relay"
-  function_app_id = azurerm_linux_function_app.stacklet.id
-  language        = "Python"
+resource "local_file" "function_json" {
+  content = templatefile(
+  "${path.module}/function-app-v1/ProviderRelay/function.json.tmpl", { queue_name = azurerm_storage_queue.stacklet.name })
+  filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
+}
 
-  file {
-    name    = "relay.py"
-    content = file("${path.module}/function/relay.py")
+
+resource "null_resource" "function_deploy" {
+  depends_on = [azurerm_linux_function_app.stacklet, local_file.function_json]
+  # ensures that publish always runs
+  triggers = {
+    build_number = "${timestamp()}"
   }
 
-  config_json = jsonencode({
-    "scriptFile" : "relay.py",
-    "bindings" : [
-      {
-        "direction" : "in",
-        "type" : "queueTrigger",
-        "connection" : "AzureWebJobsStorage",
-        "name" : "msg",
-        "queueName" : "${azurerm_storage_queue.stacklet.name}"
-      }
-    ]
-  })
+  # initial deployment of the function-app could race with provisioning, so sleep 10 seconds
+  provisioner "local-exec" {
+    command = <<EOF
+    cd ${path.module}/function-app-v1
+    sleep 10
+    func azure functionapp publish ${azurerm_linux_function_app.stacklet.name}
+    EOF
+  }
 }

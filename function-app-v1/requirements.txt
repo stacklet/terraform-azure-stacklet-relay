@@ -1,0 +1,7 @@
+# Do not include azure-functions-worker in this file
+# The Python Worker is managed by the Azure Functions platform
+# Manually managing azure-functions-worker may cause unexpected issues
+
+azure-functions==1.14.0
+azure-identity==1.13.0
+boto3==1.26.142

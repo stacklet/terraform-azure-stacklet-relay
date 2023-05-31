@@ -3,5 +3,11 @@ locals {
   app_role_id = random_uuid.app_role_uuid.id
   resource_id = azuread_service_principal.stacklet_sp.id
 
-  audience = "api://stacklet${var.prefix}"
+  audience = "api://stacklet/provider/azure"
+
+  _tags = {
+    "stacklet:app" : "Azure Relay"
+  }
+
+  tags = merge(local._tags, var.tags)
 }
