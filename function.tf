@@ -70,7 +70,7 @@ resource "null_resource" "function_deploy" {
     command = <<EOF
     cd ${path.module}/function-app-v1
     sleep 10
-    func azure functionapp publish ${azurerm_linux_function_app.stacklet.name}
+    func azure functionapp publish ${azurerm_linux_function_app.stacklet.name} --python
     EOF
   }
 }
