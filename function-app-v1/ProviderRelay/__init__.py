@@ -11,13 +11,16 @@ import boto3
 
 def get_session(client_id, audience, role_arn):
     client = boto3.client("sts")
-    creds = DefaultAzureCredential(managed_identity_client=client_id)
+    creds = DefaultAzureCredential(
+        managed_identity_client=client_id,
+        exclude_environment_credential=True
+    )
     token = creds.get_token(audience)
     try:
         res = client.assume_role_with_web_identity(
             WebIdentityToken=token.token,
             RoleArn=role_arn,
-            RoleSessionName="ComingFromAzure",
+            RoleSessionName="StackletAzureRelay",
         )
     except Exception as e:
         logging.error(f"unable to assume role:{e}")

@@ -16,7 +16,7 @@ resource "azurerm_service_plan" "stacklet" {
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "${var.prefix}-function-app"
+  name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
 
