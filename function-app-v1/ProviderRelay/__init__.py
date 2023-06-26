@@ -7,13 +7,13 @@ import azure.functions as func
 from azure.identity import DefaultAzureCredential
 
 import boto3
+import botocore
 
 
 def get_session(client_id, audience, role_arn):
     client = boto3.client("sts")
     creds = DefaultAzureCredential(
-        managed_identity_client=client_id,
-        exclude_environment_credential=True
+        managed_identity_client=client_id, exclude_environment_credential=True
     )
     token = creds.get_token(audience)
     try:
@@ -50,9 +50,11 @@ def main(msg: func.QueueMessage):
 
     body_string = msg.get_body().decode("utf-8")
     body = json.loads(body_string)
-    source = body["data"]["operationName"].split('/')[0]
+    source = body["data"]["operationName"].split("/")[0]
 
     try:
+        logging.info('Forwarding event to Stacklet')
+        logging.info(body_string)
         events_client.put_events(
             Entries=[
                 {
@@ -64,6 +66,11 @@ def main(msg: func.QueueMessage):
                 }
             ]
         )
-    except Exception as e:
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "AccessDeniedException" and str(e).endswith(
+            "with an explicit deny in a resource-based policy"
+        ):
+            logging.warning("skipping event")
+            return
         logging.error(f"failed to put event:{e}")
         raise
