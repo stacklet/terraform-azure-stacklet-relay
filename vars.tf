@@ -61,3 +61,9 @@ variable "event_names" {
     "Microsoft.Resources.ResourceDeleteSuccess",
   ]
 }
+
+variable "azuread_application" {
+  type = string
+  description = "Azure AD Application. One per tenant."
+  default = null
+}
