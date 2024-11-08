@@ -27,6 +27,6 @@ locals {
 
   tags = merge(local._tags, var.tags)
 
-  azuread_application = var.azuread_application == null ? azuread_application.stacklet_application[0] : data.azuread_application.stacklet_application[0]
+  azuread_application       = var.azuread_application == null ? azuread_application.stacklet_application[0] : data.azuread_application.stacklet_application[0]
   azuread_service_principal = var.azuread_application == null ? azuread_service_principal.stacklet_sp[0] : data.azuread_service_principal.stacklet_sp[0]
 }

@@ -41,7 +41,7 @@ resource "azurerm_user_assigned_identity" "stacklet_identity" {
 }
 
 resource "azuread_application" "stacklet_application" {
-  count = var.azuread_application == null ? 1 : 0
+  count           = var.azuread_application == null ? 1 : 0
   display_name    = "${var.prefix}-application"
   identifier_uris = [local.audience]
   owners = [
@@ -63,12 +63,12 @@ resource "azuread_application" "stacklet_application" {
 }
 
 data "azuread_application" "stacklet_application" {
-  count = var.azuread_application == null ? 0 : 1
+  count        = var.azuread_application == null ? 0 : 1
   display_name = var.azuread_application
 }
 
 resource "azuread_service_principal" "stacklet_sp" {
-  count = var.azuread_application == null ? 1 : 0
+  count                        = var.azuread_application == null ? 1 : 0
   client_id                    = local.azuread_application.client_id
   app_role_assignment_required = true
   owners = [
@@ -81,7 +81,7 @@ resource "azuread_service_principal" "stacklet_sp" {
 }
 
 data "azuread_service_principal" "stacklet_sp" {
-  count = var.azuread_application == null ? 0 : 1
+  count        = var.azuread_application == null ? 0 : 1
   display_name = var.azuread_application
 }
 

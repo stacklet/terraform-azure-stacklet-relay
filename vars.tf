@@ -83,7 +83,7 @@ variable "event_names" {
 }
 
 variable "azuread_application" {
-  type = string
+  type        = string
   description = "Azure AD Application. One per tenant."
-  default = null
+  default     = null
 }
