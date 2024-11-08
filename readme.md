@@ -7,7 +7,7 @@ policy execution within your subscription.
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-No requirements.
+[Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) must be installed.
 
 ## Providers
 
