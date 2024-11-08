@@ -17,6 +17,10 @@
 variable "prefix" {
   type        = string
   description = "A Prefix for all of the generated resources"
+  validation {
+    condition     = can(regex("^[a-z0-9]+$", var.prefix))
+    error_message = "Prefix should contain only numbers and lowercase letters"
+  }
 }
 
 variable "resource_group_location" {
