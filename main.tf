@@ -69,7 +69,7 @@ data "azuread_application" "stacklet_application" {
 
 resource "azuread_service_principal" "stacklet_sp" {
   count = var.azuread_application == null ? 1 : 0
-  application_id               = local.azuread_application.application_id
+  client_id                    = local.azuread_application.client_id
   app_role_assignment_required = true
   owners = [
     data.azuread_client_config.current.object_id,
