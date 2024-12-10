@@ -66,6 +66,11 @@ variable "aws_target_event_bus" {
   description = "AWS Target event bus for relay, to be provided by Stacklet."
 }
 
+variable "aws_target_prefix" {
+  type        = string
+  description = "Deployment prefix for the target Stacklet instance, to be provided by Stacklet."
+}
+
 variable "tags" {
   type        = map(any)
   description = "Tags to apply to resources"
