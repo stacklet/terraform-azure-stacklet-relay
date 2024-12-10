@@ -19,7 +19,7 @@ locals {
   app_role_id = var.azuread_application == null ? random_uuid.app_role_uuid.id : data.azuread_application.stacklet_application[0].app_role_ids.AssumeRoleWithWebIdentity
   resource_id = local.azuread_service_principal.object_id
 
-  audience = "api://stacklet/provider/azure/${var.prefix}"
+  audience = "api://stacklet/provider/azure/${var.aws_target_prefix}"
 
   _tags = {
     "stacklet:app" : "Azure Relay"

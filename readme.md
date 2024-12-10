@@ -58,6 +58,7 @@ No modules.
 | <a name="input_aws_target_account"></a> [aws\_target\_account](#input\_aws\_target\_account) | AWS Target account for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_aws_target_event_bus"></a> [aws\_target\_event\_bus](#input\_aws\_target\_event\_bus) | AWS Target event bus for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_aws_target_partition"></a> [aws\_target\_partition](#input\_aws\_target\_partition) | AWS Target partition for relay, to be provided by Stacklet. | `string` | `"aws"` | no |
+| <a name="input_aws_target_prefix"></a> [aws\_target\_prefix](#input\_aws\_target\_prefix) | Deployment prefix for the target Stacklet instance, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_aws_target_region"></a> [aws\_target\_region](#input\_aws\_target\_region) | AWS Target region for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_aws_target_role_name"></a> [aws\_target\_role\_name](#input\_aws\_target\_role\_name) | AWS Target role name for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_azuread_application"></a> [azuread\_application](#input\_azuread\_application) | Azure AD Application. One per tenant. | `string` | `null` | no |
