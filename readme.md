@@ -1,8 +1,49 @@
-# terraform-azure-stacklet-relay
+## Overview
 
-This module will deploy the necessary infrastructure to forward events from your Azure Subscription into
-Stacklet Platform. These events are used to enable event-driven policy execution to ensure real time
-policy execution within your subscription.
+This Terraform module implements an **event forwarding system** that captures Azure resource events and relays them to Stacklet's AWS-based platform for real-time policy execution and governance. It creates a cross-cloud event bridge that enables Stacklet's governance capabilities to extend from AWS into Azure environments.
+
+## Architecture
+
+The system works through a four-step process:
+
+### 1. Event Capture (Azure EventGrid)
+- Sets up an **Azure EventGrid System Topic** to capture subscription-level events
+- By default monitors these resource events:
+  - `Microsoft.Resources.ResourceWriteSuccess` (resource creation/updates)
+  - `Microsoft.Resources.ResourceActionSuccess` (resource actions)
+  - `Microsoft.Resources.ResourceDeleteSuccess` (resource deletions)
+
+### 2. Event Storage (Azure Storage Queue)
+- Events are queued in an **Azure Storage Queue** for reliable processing
+- Uses CloudEvent schema v1.0 format for standardized event structure
+
+### 3. Event Processing (Azure Function)
+- **Python-based Azure Function** processes events from the storage queue
+- Uses **queue trigger** to automatically process incoming events
+- Runs on Linux App Service Plan with Python 3.10
+
+### 4. Cross-Cloud Authentication & Event Forwarding
+- Uses **Azure Managed Identity** to get an identity token
+- Performs **AssumeRoleWithWebIdentity** to obtain AWS credentials
+- Forwards events to **AWS EventBridge** in the target Stacklet account
+
+## Key Components Deployed
+
+1. **Azure Resource Group** - Contains all module resources
+2. **Azure EventGrid System Topic** - Captures subscription-level events
+3. **Azure Storage Account & Queue** - Provides reliable event storage
+4. **Azure Function App** - Handles event processing and forwarding
+5. **Azure Application Insights** - Enables monitoring and logging
+6. **Azure AD Application & Service Principal** - Manages cross-cloud authentication
+7. **User Assigned Identity** - Provides managed identity for the function
+
+## Benefits
+
+This system enables:
+- **Event-driven policy execution** - Real-time response to Azure resource changes
+- **Real-time compliance monitoring** - Immediate visibility into compliance status
+- **Automated governance actions** - Automated remediation and policy enforcement
+- **Cross-cloud resource visibility** - Unified governance across Azure and AWS
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
