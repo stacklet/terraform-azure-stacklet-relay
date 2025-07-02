@@ -52,7 +52,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
     AZURE_AUDIENCE                 = local.audience
     AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
-    AZURE_SUBSCRIPTION_ID          = data.azurerm_subscription.current.subscription_id
     AWS_TARGET_ACCOUNT             = var.aws_target_account
     AWS_TARGET_REGION              = var.aws_target_region
     AWS_TARGET_ROLE_NAME           = var.aws_target_role_name
