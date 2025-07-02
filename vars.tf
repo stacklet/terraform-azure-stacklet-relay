@@ -18,14 +18,14 @@ variable "prefix" {
   type        = string
   description = "A Prefix for all of the generated resources"
   validation {
-    condition     = can(regex("^[a-z0-9]+$", var.prefix))
-    error_message = "Prefix should contain only numbers and lowercase letters"
+    condition     = can(regex("^[a-z](-?[a-z0-9]+)*$", var.prefix))
+    error_message = "Prefix must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens"
   }
 }
 
 variable "resource_group_location" {
   type        = string
-  description = "Resource Group location for generated resoruces"
+  description = "Resource Group location for generated resources"
 }
 
 variable "event_grid_topic_name" {
