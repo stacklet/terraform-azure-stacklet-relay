@@ -20,6 +20,7 @@ resource "azurerm_application_insights" "stacklet" {
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   application_type    = "web"
   tags                = local.tags
+  retention_in_days   = 90
 }
 
 resource "azurerm_service_plan" "stacklet" {
@@ -48,7 +49,7 @@ resource "local_file" "function_json" {
   filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
 }
 
-# Create host.json if it doesn't exist or needs to be managed
+# Create host.json with enhanced logging configuration
 resource "local_file" "host_json" {
   content = jsonencode({
     version = "2.0"
@@ -58,6 +59,12 @@ resource "local_file" "host_json" {
           isEnabled     = true
           excludedTypes = "Request"
         }
+      }
+      logLevel = {
+        default           = "Information"
+        "ProviderRelay"   = "Information"
+        "azure.functions" = "Warning"
+        "azure.storage"   = "Warning"
       }
     }
     functions = ["ProviderRelay"]
@@ -79,7 +86,7 @@ data "archive_file" "function_app" {
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
+  name                = "${var.prefix}-relay-app" # -${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
 
@@ -92,7 +99,7 @@ resource "azurerm_linux_function_app" "stacklet" {
 
   site_config {
     application_stack {
-      python_version = "3.10"
+      python_version = "3.12"
     }
   }
 
@@ -107,6 +114,7 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_ROLE_NAME           = var.aws_target_role_name
     AWS_TARGET_PARTITION           = var.aws_target_partition
     AWS_TARGET_EVENT_BUS           = var.aws_target_event_bus
+    FUNCTION_SOURCE_HASH           = data.archive_file.function_app.output_sha
   }
 
   identity {
