@@ -18,6 +18,7 @@
 # The Python Worker is managed by the Azure Functions platform
 # Manually managing azure-functions-worker may cause unexpected issues
 
-azure-functions==1.14.0
-azure-identity==1.13.0
-boto3==1.26.142
+# Core function dependencies - updated for Python 3.12 compatibility
+azure-functions==1.23.0
+azure-identity==1.23.0
+boto3==1.39.2

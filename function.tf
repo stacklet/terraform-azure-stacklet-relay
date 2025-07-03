@@ -105,7 +105,7 @@ resource "azurerm_linux_function_app" "stacklet" {
 
   site_config {
     application_stack {
-      python_version = "3.10"
+      python_version = "3.12"
     }
     application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
   }
