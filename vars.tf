@@ -24,8 +24,8 @@ variable "prefix" {
   type        = string
   description = "A Prefix for all of the generated resources"
   validation {
-    condition     = can(regex("^[a-z][a-z0-9]*$", var.prefix))
-    error_message = "Prefix must start with a lowercase letter and contain only lowercase letters and numbers"
+    condition     = can(regex("^[a-z](-[a-z0-9]+)*$", var.prefix))
+    error_message = "Prefix must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens"
   }
 }
 
