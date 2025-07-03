@@ -26,6 +26,7 @@ variable "prefix" {
 variable "resource_group_location" {
   type        = string
   description = "Resource Group location for generated resources"
+  default     = "East US"
 }
 
 variable "event_grid_topic_name" {
