@@ -31,6 +31,53 @@ resource "azurerm_service_plan" "stacklet" {
   tags                = local.tags
 }
 
+# Generate the function.json with queue name
+resource "local_file" "function_json" {
+  content = jsonencode({
+    scriptFile = "__init__.py"
+    bindings = [
+      {
+        name       = "msg"
+        type       = "queueTrigger"
+        direction  = "in"
+        queueName  = azurerm_storage_queue.stacklet.name
+        connection = "AzureWebJobsStorage"
+      }
+    ]
+  })
+  filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
+}
+
+# Create host.json if it doesn't exist or needs to be managed
+resource "local_file" "host_json" {
+  content = jsonencode({
+    version = "2.0"
+    logging = {
+      applicationInsights = {
+        samplingSettings = {
+          isEnabled     = true
+          excludedTypes = "Request"
+        }
+      }
+    }
+    functions = ["ProviderRelay"]
+    extensionBundle = {
+      id      = "Microsoft.Azure.Functions.ExtensionBundle"
+      version = "[4.*, 5.0.0)"
+    }
+  })
+  filename = "${path.module}/function-app-v1/host.json"
+}
+
+# Create the function app deployment package
+data "archive_file" "function_app" {
+  depends_on = [local_file.function_json, local_file.host_json]
+
+  type        = "zip"
+  source_dir  = "${path.module}/function-app-v1"
+  output_path = "${path.module}/function-app.zip"
+}
+
 resource "azurerm_linux_function_app" "stacklet" {
   name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
@@ -39,6 +86,9 @@ resource "azurerm_linux_function_app" "stacklet" {
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
   service_plan_id            = azurerm_service_plan.stacklet.id
+
+  # Deploy from zip file
+  zip_deploy_file = data.archive_file.function_app.output_path
 
   site_config {
     application_stack {
@@ -64,28 +114,4 @@ resource "azurerm_linux_function_app" "stacklet" {
     identity_ids = [azurerm_user_assigned_identity.stacklet_identity.id]
   }
   tags = local.tags
-}
-
-resource "local_file" "function_json" {
-  content = templatefile(
-  "${path.module}/function-app-v1/ProviderRelay/function.json.tmpl", { queue_name = azurerm_storage_queue.stacklet.name })
-  filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
-}
-
-
-resource "null_resource" "function_deploy" {
-  depends_on = [azurerm_linux_function_app.stacklet, local_file.function_json]
-  # ensures that publish always runs
-  triggers = {
-    build_number = "${timestamp()}"
-  }
-
-  # initial deployment of the function-app could race with provisioning, so sleep 10 seconds
-  provisioner "local-exec" {
-    command = <<EOF
-    cd ${path.module}/function-app-v1
-    sleep 10
-    func azure functionapp publish ${azurerm_linux_function_app.stacklet.name} --python
-    EOF
-  }
 }

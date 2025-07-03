@@ -14,6 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Note: Unlike AWS provider, Azure provider (azurerm) does not support
+# default_tags configuration. We use local.tags instead to achieve
+# consistent tagging across all resources.
 provider "azurerm" {
   features {}
 }
