@@ -14,6 +14,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+variable "subscription_id" {
+  type        = string
+  description = "Azure subscription ID. This could also be set using the ARM_SUBSCRIPTION_ID environment variable."
+  default     = null
+}
+
 variable "prefix" {
   type        = string
   description = "A Prefix for all of the generated resources"

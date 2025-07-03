@@ -14,6 +14,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Note: Unlike AWS provider, Azure provider (azurerm) does not support
+# default_tags configuration. We use local.tags instead to achieve
+# consistent tagging across all resources.
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">=4.35.0"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
+
+  subscription_id = var.subscription_id
 }
