@@ -27,8 +27,12 @@ data "azurerm_role_definition" "builtin" {
 
 resource "random_uuid" "app_role_uuid" {}
 
+locals {
+  resource_group_name = var.resource_group_name == null ? "${var.prefix}-stacklet-relay" : var.resource_group_name
+}
+
 resource "azurerm_resource_group" "stacklet_rg" {
-  name     = var.prefix
+  name     = local.resource_group_name
   location = var.resource_group_location
   tags     = local.tags
 }
@@ -39,6 +43,27 @@ resource "azurerm_user_assigned_identity" "stacklet_identity" {
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   tags                = local.tags
 }
+
+# # Role assignment for storage queue access
+# resource "azurerm_role_assignment" "storage_queue_data_contributor" {
+#   scope                = azurerm_storage_account.stacklet.id
+#   role_definition_name = "Storage Queue Data Contributor"
+#   principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+# }
+
+# # Role assignment for storage blob access (for function app packages)
+# resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+#   scope                = azurerm_storage_account.stacklet.id
+#   role_definition_name = "Storage Blob Data Contributor"
+#   principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+# }
+
+# # Role assignment for Application Insights
+# resource "azurerm_role_assignment" "monitoring_contributor" {
+#   scope                = azurerm_application_insights.stacklet.id
+#   role_definition_name = "Monitoring Contributor"
+#   principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+# }
 
 resource "azuread_application" "stacklet_application" {
   count           = var.azuread_application == null ? 1 : 0
@@ -84,6 +109,18 @@ data "azuread_service_principal" "stacklet_sp" {
   count        = var.azuread_application == null ? 0 : 1
   display_name = var.azuread_application
 }
+
+# Terraform's Azure AD provider doesn't have a direct resource for app role assignments, so this uses the Azure CLI REST API
+# as a workaround to create the assignment that enables the federated identity scenario.
+# This block is essential for allowing the Azure Function to authenticate to AWS using Azure managed identity.
+#
+# Azure Function (Managed Identity)
+#     ↓ (gets Azure AD token)
+# Azure AD App Role Assignment  ← This block creates this
+#     ↓ (token includes app role claim)
+# AWS STS AssumeRoleWithWebIdentity
+#     ↓ (returns AWS credentials)
+# AWS EventBridge API
 
 resource "null_resource" "stacklet" {
   depends_on = [local.azuread_application, local.azuread_service_principal]

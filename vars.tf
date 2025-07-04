@@ -29,6 +29,12 @@ variable "prefix" {
   }
 }
 
+variable "resource_group_name" {
+  type        = string
+  description = "Resource Group name for generated resources"
+  default     = null
+}
+
 variable "resource_group_location" {
   type        = string
   description = "Resource Group location for generated resources"
@@ -98,4 +104,16 @@ variable "azuread_application" {
   type        = string
   description = "Azure AD Application. One per tenant."
   default     = null
+}
+
+variable "allowed_ip_addresses" {
+  type        = list(string)
+  description = "List of IP addresses allowed to access the storage account for Terraform and admin access"
+  default     = []
+}
+
+variable "force_delete_resource_group" {
+  type        = bool
+  description = "Force delete the resource group when terraform destroy is run"
+  default     = false
 }
