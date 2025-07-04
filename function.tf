@@ -120,33 +120,12 @@ resource "azurerm_linux_function_app" "stacklet" {
     }
 
     # More somewhat pointless HTTP security; the HTTP data plane is unused.
-    # always_on                   = false      # Not needed for consumption plan
     ftps_state               = "Disabled" # Disable FTP/FTPS
     http2_enabled            = true       # Enable HTTP/2
     minimum_tls_version      = "1.3"
     remote_debugging_enabled = false      # Disable remote debugging
     scm_minimum_tls_version  = "1.2"      # SCM also uses TLS 1.2+
-    # scm_use_main_ip_restriction = true       # Apply IP restrictions to SCM
-    # vnet_route_all_enabled      = false      # No VNet routing needed
-    websockets_enabled = false # Disable WebSockets
-
-    # IP restrictions - temporarily removed for deployment
-    # TODO: Re-enable after deployment
-    # ip_restriction {
-    #   action     = "Deny"
-    #   priority   = 100
-    #   ip_address = "0.0.0.0/0"
-    #   name       = "DenyAll"
-    # }
-
-    # SCM IP restrictions - temporarily simplified for deployment
-    # TODO: Re-enable stricter restrictions after deployment
-    # scm_ip_restriction {
-    #   action      = "Allow"
-    #   priority    = 100
-    #   service_tag = "AzureCloud"
-    #   name        = "AllowAzureCloud"
-    # }
+    websockets_enabled       = false      # Disable WebSockets
   }
 
   app_settings = {
@@ -157,21 +136,9 @@ resource "azurerm_linux_function_app" "stacklet" {
     # default "Your Functions 4.0 app is up and running" page.
     AzureWebJobsDisableHomepage = true
 
-    # Security settings
-    # WEBSITES_ENABLE_APP_SERVICE_STORAGE  = false # Use container storage
-    # WEBSITE_DISABLE_OVERLAPPED_RECYCLING = true  # Prevent overlapped recycling
-    # WEBSITE_RUN_FROM_PACKAGE             = "1"   # Run from package for security
-
     # # Storage connection using managed identity
     # AzureWebJobsStorage__accountName = azurerm_storage_account.stacklet.name
     # AzureWebJobsStorage__credential  = "managedidentity"
-
-    # # Disable unnecessary features
-    # WEBSITE_ENABLE_SYNC_UPDATE_SITE    = false
-    # WEBSITE_HTTPLOGGING_RETENTION_DAYS = "7" # Limit log retention
-
-    # # Function runtime settings
-    # PYTHON_ISOLATE_WORKER_DEPENDENCIES = "1"
 
     # Application configuration
     AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
