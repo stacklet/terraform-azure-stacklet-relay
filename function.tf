@@ -86,7 +86,7 @@ data "archive_file" "function_app" {
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "${var.prefix}-relay-app" # -${substr(random_string.storage_account_suffix.result, 0, 15)}"
+  name                = "${var.prefix}-relay-app"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
 

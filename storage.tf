@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 locals {
+  # Storage account name must be 3-24 characters and cannot contain hyphens.
   prefix_no_hyphens = replace(var.prefix, "-", "")
 }
 
