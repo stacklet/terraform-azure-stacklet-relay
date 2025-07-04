@@ -33,10 +33,73 @@ resource "azurerm_storage_account" "stacklet" {
   location                 = azurerm_resource_group.stacklet_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  tags                     = local.tags
+
+  # # Security hardening
+  # https_traffic_only_enabled      = true     # Enforce HTTPS only
+  # min_tls_version                 = "TLS1_2" # Enforce TLS 1.2+
+  # allow_nested_items_to_be_public = false    # Prevent public blob access
+  # public_network_access_enabled   = true     # Enable for selective access
+  # shared_access_key_enabled       = false    # Disable access keys, use managed identity only
+
+  # # Disable unnecessary protocols
+  # nfsv3_enabled = false
+  # sftp_enabled  = false
+
+  # # Network restrictions - deny by default, allow specific access
+  # network_rules {
+  #   default_action = "Deny"                                  # Block general public access
+  #   bypass         = ["AzureServices", "Logging", "Metrics"] # Allow Azure services
+
+  #   # Allow access from specified IP addresses (Terraform, admin access, etc.)
+  #   ip_rules = var.allowed_ip_addresses
+
+  #   # No VNet access needed for this use case
+  #   virtual_network_subnet_ids = []
+  # }
+
+  # # Blob properties for additional security
+  # blob_properties {
+  #   versioning_enabled  = false # Not needed for function storage
+  #   change_feed_enabled = false # Not needed
+
+  #   delete_retention_policy {
+  #     days = 7 # Short retention for security
+  #   }
+
+  #   container_delete_retention_policy {
+  #     days = 7 # Short retention for security
+  #   }
+  # }
+
+  tags = local.tags
 }
 
 resource "azurerm_storage_queue" "stacklet" {
   name                 = "${azurerm_storage_account.stacklet.name}-queue"
   storage_account_name = azurerm_storage_account.stacklet.name
 }
+
+# # Separate queue properties resource (replaces deprecated queue_properties block)
+# resource "azurerm_storage_account_queue_properties" "stacklet" {
+#   storage_account_id = azurerm_storage_account.stacklet.id
+
+#   logging {
+#     delete                = true
+#     read                  = true
+#     write                 = true
+#     version               = "1.0"
+#     retention_policy_days = 7 # Short retention for security
+#   }
+
+#   minute_metrics {
+#     version               = "1.0"
+#     include_apis          = true
+#     retention_policy_days = 7
+#   }
+
+#   hour_metrics {
+#     version               = "1.0"
+#     include_apis          = true
+#     retention_policy_days = 7
+#   }
+# }
