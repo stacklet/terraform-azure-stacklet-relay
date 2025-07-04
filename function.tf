@@ -99,10 +99,10 @@ resource "azurerm_linux_function_app" "stacklet" {
   # Deploy from zip file
   zip_deploy_file = data.archive_file.function_app.output_path
 
-  # # Enforce HTTPS and modern TLS
-  # https_only                    = true
-  # client_certificate_enabled    = false
-  # public_network_access_enabled = true # TODO: Set to false after deployment for security
+  # Enforce HTTPS and modern TLS
+  https_only                    = true
+  client_certificate_enabled    = false
+  public_network_access_enabled = false
 
   site_config {
     application_stack {
