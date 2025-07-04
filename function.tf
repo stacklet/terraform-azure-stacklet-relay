@@ -106,8 +106,8 @@ resource "azurerm_linux_function_app" "stacklet" {
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
   https_only                    = true
-  # client_certificate_enabled    = false
-  # public_network_access_enabled = true # TODO: Set to false after deployment for security
+  client_certificate_enabled    = false
+  public_network_access_enabled = false
 
   # Deploy from zip file
   zip_deploy_file = local_file.function_app_versioned.filename
