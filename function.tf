@@ -170,6 +170,7 @@ resource "null_resource" "deploy_function_app" {
         --name ${azurerm_linux_function_app.stacklet.name} \
         --resource-group ${azurerm_resource_group.stacklet_rg.name} \
         --src ${data.archive_file.function_app.output_path}
+        --build-remote true
 
       # Disable public access again
       az functionapp update \
