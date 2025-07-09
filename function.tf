@@ -96,8 +96,6 @@ resource "azurerm_linux_function_app" "stacklet" {
   # replaces storage_account_access_key
   # storage_uses_managed_identity = true # Use managed identity instead of access keys
 
-  # Deploy from zip file
-  zip_deploy_file = data.archive_file.function_app.output_path
 
   # Enforce HTTPS and private access
   https_only                    = true
@@ -138,7 +136,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_ROLE_NAME     = var.aws_target_role_name
     AWS_TARGET_PARTITION     = var.aws_target_partition
     AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
-    FUNCTION_SOURCE_HASH     = data.archive_file.function_app.output_sha
   }
 
   # # Authentication disabled since no HTTP access
@@ -152,4 +149,37 @@ resource "azurerm_linux_function_app" "stacklet" {
   }
 
   tags = local.tags
+}
+
+# In order to get the underlying function in the application to be redeployed
+# when the zip hash changes, we need use fork out to the azure cli.
+# We also need to temporarily enable public access to allow the zip file to be deployed.
+resource "null_resource" "deploy_function_app" {
+  depends_on = [azurerm_linux_function_app.stacklet]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Temporarily enable public access
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Enabled
+
+      # Deploy the code
+      az functionapp deployment source config-zip \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --src ${data.archive_file.function_app.output_path}
+
+      # Disable public access again
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Disabled
+    EOT
+  }
+
+  triggers = {
+    build_hash = data.archive_file.function_app.output_sha256
+  }
 }

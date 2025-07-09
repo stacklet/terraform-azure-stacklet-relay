@@ -69,7 +69,7 @@ def main(msg: func.QueueMessage):
     source = body["data"]["operationName"].split("/")[0]
 
     try:
-        logging.info('Forwarding event to Stacklet')
+        logging.info("Forwarding event to Stacklet")
         logging.info(body_string)
         events_client.put_events(
             Entries=[
