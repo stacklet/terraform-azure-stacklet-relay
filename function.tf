@@ -85,13 +85,6 @@ data "archive_file" "function_app" {
   output_path = "${path.module}/function-app.zip"
 }
 
-# azurerm_linux_function_app's zip_deploy_file will only redeploy the function
-# when the path changes, so copy the zip to a versioned filename.
-resource "local_file" "function_app_versioned" {
-  filename = "${path.module}/function-app-${data.archive_file.function_app.output_sha256}.zip"
-  source = "${path.module}/function-app.zip"
-}
-
 resource "azurerm_linux_function_app" "stacklet" {
   name                = "${var.prefix}-relay-app"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
@@ -108,9 +101,6 @@ resource "azurerm_linux_function_app" "stacklet" {
   https_only                    = true
   client_certificate_enabled    = false
   public_network_access_enabled = false
-
-  # Deploy from zip file
-  zip_deploy_file = local_file.function_app_versioned.filename
 
   site_config {
     application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
@@ -167,5 +157,39 @@ resource "azurerm_linux_function_app" "stacklet" {
     ignore_changes = [
       tags["hidden-link: /app-insights-resource-id"]
     ]
+  }
+}
+
+# In order to get the underlying function in the application to be redeployed
+# when the zip hash changes, we need use fork out to the azure cli.
+# We also need to temporarily enable public access to allow the zip file to be deployed.
+resource "null_resource" "deploy_function_app" {
+  depends_on = [azurerm_linux_function_app.stacklet]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Temporarily enable public access
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Enabled
+
+      # Deploy the code
+      az functionapp deployment source config-zip \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --src ${data.archive_file.function_app.output_path} \
+        --build-remote true
+
+      # Disable public access again
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Disabled
+    EOT
+  }
+
+  triggers = {
+    build_hash = data.archive_file.function_app.output_sha256
   }
 }
