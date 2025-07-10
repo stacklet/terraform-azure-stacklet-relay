@@ -89,13 +89,11 @@ resource "azurerm_linux_function_app" "stacklet" {
   name                = "${var.prefix}-relay-app"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
+  service_plan_id     = azurerm_service_plan.stacklet.id
 
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
-  service_plan_id            = azurerm_service_plan.stacklet.id
-  # replaces storage_account_access_key
-  # storage_uses_managed_identity = true # Use managed identity instead of access keys
-
+  # storage_uses_managed_identity = true
 
   # Enforce HTTPS and private access
   https_only                    = true
@@ -103,29 +101,21 @@ resource "azurerm_linux_function_app" "stacklet" {
   public_network_access_enabled = false
 
   site_config {
+    application_insights_key               = azurerm_application_insights.stacklet.instrumentation_key
+    application_insights_connection_string = azurerm_application_insights.stacklet.connection_string
+
     application_stack {
       python_version = "3.12"
     }
 
     # Security hardening
-    ftps_state               = "Disabled" # Disable FTP/FTPS
-    http2_enabled            = true       # Enable HTTP/2
-    minimum_tls_version      = "1.2"      # Enforce TLS 1.2+
-    remote_debugging_enabled = false      # Disable remote debugging
-    scm_minimum_tls_version  = "1.2"      # SCM also uses TLS 1.2+
-    websockets_enabled       = false      # Disable WebSockets
+    http2_enabled = true # Enable HTTP/2 - however this function never has direct HTTP access, so this setting is fairly meaningless, but ticks boxes.
+    # minimum_tls_version = "1.3" # Enforce TLS 1.3+
   }
 
   app_settings = {
     # Build and deployment settings
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
-
-    # Application Insights
-    APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.stacklet.instrumentation_key
-
-    # # Storage connection using managed identity
-    # AzureWebJobsStorage__accountName = azurerm_storage_account.stacklet.name
-    # AzureWebJobsStorage__credential  = "managedidentity"
 
     # Application configuration
     AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
@@ -137,11 +127,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_PARTITION     = var.aws_target_partition
     AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
   }
-
-  # # Authentication disabled since no HTTP access
-  # auth_settings {
-  #   enabled = false
-  # }
 
   identity {
     type         = "UserAssigned"
