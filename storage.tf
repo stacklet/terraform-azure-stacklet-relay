@@ -57,19 +57,6 @@ resource "azurerm_storage_account" "stacklet" {
   #   virtual_network_subnet_ids = []
   # }
 
-  # # Blob properties for additional security
-  # blob_properties {
-  #   versioning_enabled  = false # Not needed for function storage
-  #   change_feed_enabled = false # Not needed
-
-  #   delete_retention_policy {
-  #     days = 7 # Short retention for security
-  #   }
-
-  #   container_delete_retention_policy {
-  #     days = 7 # Short retention for security
-  #   }
-  # }
 
   tags = local.tags
 }
@@ -78,28 +65,3 @@ resource "azurerm_storage_queue" "stacklet" {
   name                 = "${azurerm_storage_account.stacklet.name}-queue"
   storage_account_name = azurerm_storage_account.stacklet.name
 }
-
-# # Separate queue properties resource (replaces deprecated queue_properties block)
-# resource "azurerm_storage_account_queue_properties" "stacklet" {
-#   storage_account_id = azurerm_storage_account.stacklet.id
-
-#   logging {
-#     delete                = true
-#     read                  = true
-#     write                 = true
-#     version               = "1.0"
-#     retention_policy_days = 7 # Short retention for security
-#   }
-
-#   minute_metrics {
-#     version               = "1.0"
-#     include_apis          = true
-#     retention_policy_days = 7
-#   }
-
-#   hour_metrics {
-#     version               = "1.0"
-#     include_apis          = true
-#     retention_policy_days = 7
-#   }
-# }
