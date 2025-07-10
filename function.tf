@@ -93,8 +93,7 @@ resource "azurerm_linux_function_app" "stacklet" {
 
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
-  # replaces storage_account_access_key
-  # storage_uses_managed_identity = true # Use managed identity instead of access keys
+  # storage_uses_managed_identity = true
 
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
@@ -103,19 +102,16 @@ resource "azurerm_linux_function_app" "stacklet" {
   public_network_access_enabled = false
 
   site_config {
-    application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
+    application_insights_key               = azurerm_application_insights.stacklet.instrumentation_key
+    application_insights_connection_string = azurerm_application_insights.stacklet.connection_string
 
     application_stack {
       python_version = "3.12"
     }
 
     # More somewhat pointless HTTP security; the HTTP data plane is unused.
-    ftps_state               = "Disabled" # Disable FTP/FTPS
-    http2_enabled            = true       # Enable HTTP/2
-    minimum_tls_version      = "1.3"
-    remote_debugging_enabled = false      # Disable remote debugging
-    scm_minimum_tls_version  = "1.2"      # SCM also uses TLS 1.2+
-    websockets_enabled       = false      # Disable WebSockets
+    minimum_tls_version = "1.3"
+    http2_enabled       = true
   }
 
   app_settings = {
@@ -125,10 +121,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     # Since we don't actually publish any HTTP content, also disable the
     # default "Your Functions 4.0 app is up and running" page.
     AzureWebJobsDisableHomepage = true
-
-    # # Storage connection using managed identity
-    # AzureWebJobsStorage__accountName = azurerm_storage_account.stacklet.name
-    # AzureWebJobsStorage__credential  = "managedidentity"
 
     # Application configuration
     AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
@@ -140,11 +132,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_PARTITION     = var.aws_target_partition
     AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
   }
-
-  # # Authentication disabled since no HTTP access
-  # auth_settings {
-  #   enabled = false
-  # }
 
   identity {
     type         = "UserAssigned"
