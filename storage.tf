@@ -34,29 +34,10 @@ resource "azurerm_storage_account" "stacklet" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
 
-  # # Security hardening
-  # https_traffic_only_enabled      = true     # Enforce HTTPS only
-  # min_tls_version                 = "TLS1_2" # Enforce TLS 1.2+
-  # allow_nested_items_to_be_public = false    # Prevent public blob access
+  # Defaults to https only, and min tls version is 1.2
+  # allow_nested_items_to_be_public = false # Prevent public blob access
   # public_network_access_enabled   = true     # Enable for selective access
-  # shared_access_key_enabled       = false    # Disable access keys, use managed identity only
-
-  # # Disable unnecessary protocols
-  # nfsv3_enabled = false
-  # sftp_enabled  = false
-
-  # # Network restrictions - deny by default, allow specific access
-  # network_rules {
-  #   default_action = "Deny"                                  # Block general public access
-  #   bypass         = ["AzureServices", "Logging", "Metrics"] # Allow Azure services
-
-  #   # Allow access from specified IP addresses (Terraform, admin access, etc.)
-  #   ip_rules = var.allowed_ip_addresses
-
-  #   # No VNet access needed for this use case
-  #   virtual_network_subnet_ids = []
-  # }
-
+  # shared_access_key_enabled = false # Disable access keys, use managed identity only
 
   tags = local.tags
 }
