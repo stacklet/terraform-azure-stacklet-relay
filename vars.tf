@@ -111,9 +111,3 @@ variable "azuread_application" {
   description = "Azure AD Application. One per tenant."
   default     = null
 }
-
-variable "allowed_ip_addresses" {
-  type        = list(string)
-  description = "List of IP addresses allowed to access the storage account for Terraform and admin access"
-  default     = []
-}
