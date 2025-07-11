@@ -94,6 +94,13 @@ resource "azurerm_linux_function_app" "stacklet" {
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
   # storage_uses_managed_identity = true
+  # After the function has been deployed, this value can be turned on, and
+  # the storage_account_access_key removed. However, doing this also stops
+  # future redeployment of the function code from working as the azure cli
+  # looks for the `AzureWebJobsStorage` application setting. When using the
+  # managed identity, this value is not set, and instead
+  # `AzureWebJobsStorage__accountKey` is set. This causes the azure cli to
+  # fail to deploy the function code.
 
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
