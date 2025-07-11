@@ -94,6 +94,13 @@ resource "azurerm_linux_function_app" "stacklet" {
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
   # storage_uses_managed_identity = true
+  # After the function has been deployed, this value can be turned on, and
+  # the storage_account_access_key removed. However, doing this also stops
+  # future redeployment of the function code from working as the azure cli
+  # looks for the `AzureWebJobsStorage` application setting. When using the
+  # managed identity, this value is not set, and instead
+  # `AzureWebJobsStorage__accountKey` is set. This causes the azure cli to
+  # fail to deploy the function code.
 
   # Enforce HTTPS and private access
   https_only                    = true
@@ -110,7 +117,7 @@ resource "azurerm_linux_function_app" "stacklet" {
 
     # Security hardening
     http2_enabled = true # Enable HTTP/2 - however this function never has direct HTTP access, so this setting is fairly meaningless, but ticks boxes.
-    # minimum_tls_version = "1.3" # Enforce TLS 1.3+
+    # minimum_tls_version = "1.3"
   }
 
   app_settings = {

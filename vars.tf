@@ -106,12 +106,6 @@ variable "azuread_application" {
   default     = null
 }
 
-variable "allowed_ip_addresses" {
-  type        = list(string)
-  description = "List of IP addresses allowed to access the storage account for Terraform and admin access"
-  default     = []
-}
-
 variable "force_delete_resource_group" {
   type        = bool
   description = "Force delete the resource group when terraform destroy is run"
