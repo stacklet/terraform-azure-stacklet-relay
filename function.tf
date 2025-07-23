@@ -44,11 +44,11 @@ resource "azurerm_linux_function_app" "stacklet" {
     application_stack {
       python_version = "3.10"
     }
+    application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
   }
 
   app_settings = {
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
-    APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.stacklet.instrumentation_key
     AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
     AZURE_AUDIENCE                 = local.audience
     AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
@@ -64,6 +64,12 @@ resource "azurerm_linux_function_app" "stacklet" {
     identity_ids = [azurerm_user_assigned_identity.stacklet_identity.id]
   }
   tags = local.tags
+
+  lifecycle {
+    ignore_changes = [
+      tags["hidden-link: /app-insights-resource-id"]
+    ]
+  }
 }
 
 resource "local_file" "function_json" {
