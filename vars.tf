@@ -41,6 +41,12 @@ variable "resource_group_location" {
   default     = "East US"
 }
 
+variable "force_delete_resource_group" {
+  type        = bool
+  description = "Force delete the resource group when terraform destroy is run"
+  default     = false
+}
+
 variable "event_grid_topic_name" {
   type        = string
   description = "System Topic Name for subscription events if it already exists"
