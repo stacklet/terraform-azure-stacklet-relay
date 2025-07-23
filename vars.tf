@@ -29,6 +29,12 @@ variable "prefix" {
   }
 }
 
+variable "resource_group_name" {
+  type        = string
+  description = "Resource Group name for generated resources"
+  default     = null
+}
+
 variable "resource_group_location" {
   type        = string
   description = "Resource Group location for generated resources"
