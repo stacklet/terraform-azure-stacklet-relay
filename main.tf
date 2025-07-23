@@ -28,7 +28,7 @@ data "azurerm_role_definition" "builtin" {
 resource "random_uuid" "app_role_uuid" {}
 
 locals {
-  resource_group_name = coalesce(var.resource_group_name, var.prefix)
+  resource_group_name = coalesce(var.resource_group_name, "${var.prefix}-stacklet-relay")
 }
 
 resource "azurerm_resource_group" "stacklet_rg" {
