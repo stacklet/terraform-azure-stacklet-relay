@@ -27,8 +27,12 @@ data "azurerm_role_definition" "builtin" {
 
 resource "random_uuid" "app_role_uuid" {}
 
+locals {
+  resource_group_name = coalesce(var.resource_group_name, var.prefix)
+}
+
 resource "azurerm_resource_group" "stacklet_rg" {
-  name     = var.prefix
+  name     = local.resource_group_name
   location = var.resource_group_location
   tags     = local.tags
 }
@@ -85,15 +89,8 @@ data "azuread_service_principal" "stacklet_sp" {
   display_name = var.azuread_application
 }
 
-resource "null_resource" "stacklet" {
-  depends_on = [local.azuread_application, local.azuread_service_principal]
-  provisioner "local-exec" {
-    command = <<EOF
-      az rest \
-        --method POST \
-        --uri https://graph.microsoft.com/v1.0/servicePrincipals/${local.object_id}/appRoleAssignments \
-        --headers 'Content-Type=application/json' \
-        --body '{"principalId": "${local.object_id}", "resourceId": "${local.resource_id}", "appRoleId": "${local.app_role_id}"}'
-    EOF
-  }
+resource "azuread_app_role_assignment" "stacklet_app_role_assignment" {
+  principal_object_id = azurerm_user_assigned_identity.stacklet_identity.principal_id
+  resource_object_id  = local.azuread_service_principal.object_id
+  app_role_id         = local.app_role_id
 }

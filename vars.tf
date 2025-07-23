@@ -14,18 +14,37 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+variable "subscription_id" {
+  type        = string
+  description = "Azure subscription ID. This could also be set using the ARM_SUBSCRIPTION_ID environment variable."
+  default     = null
+}
+
 variable "prefix" {
   type        = string
   description = "A Prefix for all of the generated resources"
   validation {
-    condition     = can(regex("^[a-z0-9]+$", var.prefix))
-    error_message = "Prefix should contain only numbers and lowercase letters"
+    condition     = can(regex("^[a-z](-?[a-z0-9]+)*$", var.prefix))
+    error_message = "Prefix must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens"
   }
+}
+
+variable "resource_group_name" {
+  type        = string
+  description = "Resource Group name for generated resources"
+  default     = null
 }
 
 variable "resource_group_location" {
   type        = string
-  description = "Resource Group location for generated resoruces"
+  description = "Resource Group location for generated resources"
+  default     = "East US"
+}
+
+variable "force_delete_resource_group" {
+  type        = bool
+  description = "Force delete the resource group when terraform destroy is run"
+  default     = false
 }
 
 variable "event_grid_topic_name" {
