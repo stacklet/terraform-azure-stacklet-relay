@@ -107,7 +107,7 @@ No modules.
 | <a name="input_event_grid_topic_resource_group"></a> [event\_grid\_topic\_resource\_group](#input\_event\_grid\_topic\_resource\_group) | System Topic resource group name for subscription events if it already exists | `string` | `null` | no |
 | <a name="input_event_names"></a> [event\_names](#input\_event\_names) | Event Names to filter | `list(string)` | <pre>[<br/>  "Microsoft.Resources.ResourceWriteSuccess",<br/>  "Microsoft.Resources.ResourceActionSuccess",<br/>  "Microsoft.Resources.ResourceDeleteSuccess"<br/>]</pre> | no |
 | <a name="input_prefix"></a> [prefix](#input\_prefix) | A Prefix for all of the generated resources | `string` | n/a | yes |
-| <a name="input_resource_group_location"></a> [resource\_group\_location](#input\_resource\_group\_location) | Resource Group location for generated resoruces | `string` | n/a | yes |
+| <a name="input_resource_group_location"></a> [resource\_group\_location](#input\_resource\_group\_location) | Resource Group location for generated resources | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to resources | `map(any)` | `{}` | no |
 
 ## Outputs
