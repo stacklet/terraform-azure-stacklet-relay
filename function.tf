@@ -31,67 +31,111 @@ resource "azurerm_service_plan" "stacklet" {
   tags                = local.tags
 }
 
+# Generate the function.json with queue name
+resource "local_file" "function_json" {
+  content = jsonencode({
+    scriptFile = "__init__.py"
+    bindings = [
+      {
+        name       = "msg"
+        type       = "queueTrigger"
+        direction  = "in"
+        queueName  = azurerm_storage_queue.stacklet.name
+        connection = "AzureWebJobsStorage"
+      }
+    ]
+  })
+  filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
+}
+
+# Create host.json with enhanced logging configuration
+resource "local_file" "host_json" {
+  content = jsonencode({
+    version = "2.0"
+    logging = {
+      applicationInsights = {
+        samplingSettings = {
+          isEnabled     = true
+          excludedTypes = "Request"
+        }
+      }
+      logLevel = {
+        default           = "Information"
+        "ProviderRelay"   = "Information"
+        "azure.functions" = "Warning"
+        "azure.storage"   = "Warning"
+      }
+    }
+    functions = ["ProviderRelay"]
+    extensionBundle = {
+      id      = "Microsoft.Azure.Functions.ExtensionBundle"
+      version = "[4.*, 5.0.0)"
+    }
+  })
+  filename = "${path.module}/function-app-v1/host.json"
+}
+
+# Create the function app deployment package
+data "archive_file" "function_app" {
+  depends_on = [local_file.function_json, local_file.host_json]
+
+  type        = "zip"
+  source_dir  = "${path.module}/function-app-v1"
+  output_path = "${path.module}/function-app.zip"
+}
+
+# azurerm_linux_function_app's zip_deploy_file will only redeploy the function
+# when the path changes, so copy the zip to a versioned filename.
+resource "local_file" "function_app_versioned" {
+  filename = "${path.module}/function-app-${data.archive_file.function_app.output_sha256}.zip"
+  source = "${path.module}/function-app.zip"
+}
+
 resource "azurerm_linux_function_app" "stacklet" {
   name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
+  service_plan_id     = azurerm_service_plan.stacklet.id
 
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
-  service_plan_id            = azurerm_service_plan.stacklet.id
+
+  # Deploy from zip file
+  zip_deploy_file = local_file.function_app_versioned.filename
 
   site_config {
-    application_stack {
-      python_version = "3.10"
-    }
     application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
+
+    application_stack {
+      python_version = "3.12"
+    }
   }
 
   app_settings = {
+    # Build and deployment settings
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
-    AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
-    AZURE_AUDIENCE                 = local.audience
-    AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
-    AWS_TARGET_ACCOUNT             = var.aws_target_account
-    AWS_TARGET_REGION              = var.aws_target_region
-    AWS_TARGET_ROLE_NAME           = var.aws_target_role_name
-    AWS_TARGET_PARTITION           = var.aws_target_partition
-    AWS_TARGET_EVENT_BUS           = var.aws_target_event_bus
+
+    # Application configuration
+    AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
+    AZURE_AUDIENCE           = local.audience
+    AZURE_STORAGE_QUEUE_NAME = azurerm_storage_queue.stacklet.name
+    AWS_TARGET_ACCOUNT       = var.aws_target_account
+    AWS_TARGET_REGION        = var.aws_target_region
+    AWS_TARGET_ROLE_NAME     = var.aws_target_role_name
+    AWS_TARGET_PARTITION     = var.aws_target_partition
+    AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
   }
 
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.stacklet_identity.id]
   }
+
   tags = local.tags
 
   lifecycle {
     ignore_changes = [
       tags["hidden-link: /app-insights-resource-id"]
     ]
-  }
-}
-
-resource "local_file" "function_json" {
-  content = templatefile(
-  "${path.module}/function-app-v1/ProviderRelay/function.json.tmpl", { queue_name = azurerm_storage_queue.stacklet.name })
-  filename = "${path.module}/function-app-v1/ProviderRelay/function.json"
-}
-
-
-resource "null_resource" "function_deploy" {
-  depends_on = [azurerm_linux_function_app.stacklet, local_file.function_json]
-  # ensures that publish always runs
-  triggers = {
-    build_number = "${timestamp()}"
-  }
-
-  # initial deployment of the function-app could race with provisioning, so sleep 10 seconds
-  provisioner "local-exec" {
-    command = <<EOF
-    cd ${path.module}/function-app-v1
-    sleep 10
-    func azure functionapp publish ${azurerm_linux_function_app.stacklet.name} --python
-    EOF
   }
 }
