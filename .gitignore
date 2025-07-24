@@ -5,6 +5,7 @@ settings.auto.tfvars
 .terraform.lock.hcl
 
 function-app.zip
+function-app-*.zip
 function-app-v1/host.json
 function-app-v1/ProviderRelay/function.json
 
