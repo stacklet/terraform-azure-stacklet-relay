@@ -20,6 +20,7 @@ resource "azurerm_application_insights" "stacklet" {
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   application_type    = "web"
   tags                = local.tags
+  retention_in_days   = 90
 }
 
 resource "azurerm_service_plan" "stacklet" {
@@ -92,7 +93,7 @@ resource "local_file" "function_app_versioned" {
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
+  name                = "${var.prefix}-relay-app" # -${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
   service_plan_id     = azurerm_service_plan.stacklet.id
