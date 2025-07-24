@@ -100,6 +100,10 @@ resource "azurerm_linux_function_app" "stacklet" {
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
 
+  # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
+  # is unused, to avoid showing up in security checks.
+  https_only                    = true
+
   # Deploy from zip file
   zip_deploy_file = local_file.function_app_versioned.filename
 
@@ -109,11 +113,18 @@ resource "azurerm_linux_function_app" "stacklet" {
     application_stack {
       python_version = "3.12"
     }
+
+    # More somewhat pointless HTTP security; the HTTP data plane is unused.
+    minimum_tls_version = "1.3"
   }
 
   app_settings = {
     # Build and deployment settings
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
+
+    # Since we don't actually publish any HTTP content, also disable the
+    # default "Your Functions 4.0 app is up and running" page.
+    AzureWebJobsDisableHomepage = true
 
     # Application configuration
     AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
