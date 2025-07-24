@@ -95,37 +95,42 @@ resource "azurerm_linux_function_app" "stacklet" {
   name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
+  service_plan_id     = azurerm_service_plan.stacklet.id
 
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
-  service_plan_id            = azurerm_service_plan.stacklet.id
 
   # Deploy from zip file
   zip_deploy_file = local_file.function_app_versioned.filename
 
   site_config {
+    application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
+
     application_stack {
       python_version = "3.12"
     }
-    application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
   }
 
   app_settings = {
+    # Build and deployment settings
     SCM_DO_BUILD_DURING_DEPLOYMENT = true
-    AZURE_CLIENT_ID                = azurerm_user_assigned_identity.stacklet_identity.client_id
-    AZURE_AUDIENCE                 = local.audience
-    AZURE_STORAGE_QUEUE_NAME       = azurerm_storage_queue.stacklet.name
-    AWS_TARGET_ACCOUNT             = var.aws_target_account
-    AWS_TARGET_REGION              = var.aws_target_region
-    AWS_TARGET_ROLE_NAME           = var.aws_target_role_name
-    AWS_TARGET_PARTITION           = var.aws_target_partition
-    AWS_TARGET_EVENT_BUS           = var.aws_target_event_bus
+
+    # Application configuration
+    AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
+    AZURE_AUDIENCE           = local.audience
+    AZURE_STORAGE_QUEUE_NAME = azurerm_storage_queue.stacklet.name
+    AWS_TARGET_ACCOUNT       = var.aws_target_account
+    AWS_TARGET_REGION        = var.aws_target_region
+    AWS_TARGET_ROLE_NAME     = var.aws_target_role_name
+    AWS_TARGET_PARTITION     = var.aws_target_partition
+    AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
   }
 
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.stacklet_identity.id]
   }
+
   tags = local.tags
 
   lifecycle {
