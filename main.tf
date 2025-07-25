@@ -28,7 +28,7 @@ data "azurerm_role_definition" "builtin" {
 resource "random_uuid" "app_role_uuid" {}
 
 locals {
-  resource_group_name = coalesce(var.resource_group_name, var.prefix)
+  resource_group_name = coalesce(var.resource_group_name, "${var.prefix}-stacklet-relay")
 }
 
 resource "azurerm_resource_group" "stacklet_rg" {
@@ -42,6 +42,27 @@ resource "azurerm_user_assigned_identity" "stacklet_identity" {
   name                = "${var.prefix}-identity"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   tags                = local.tags
+}
+
+# Role assignment for storage queue access
+resource "azurerm_role_assignment" "storage_queue_data_contributor" {
+  scope                = azurerm_storage_account.stacklet.id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+}
+
+# Role assignment for storage blob access (for function app packages)
+resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+  scope                = azurerm_storage_account.stacklet.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+}
+
+# Role assignment for Application Insights
+resource "azurerm_role_assignment" "monitoring_contributor" {
+  scope                = azurerm_application_insights.stacklet.id
+  role_definition_name = "Monitoring Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
 }
 
 resource "azuread_application" "stacklet_application" {

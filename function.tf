@@ -20,6 +20,7 @@ resource "azurerm_application_insights" "stacklet" {
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   application_type    = "web"
   tags                = local.tags
+  retention_in_days   = 90
 }
 
 resource "azurerm_service_plan" "stacklet" {
@@ -84,31 +85,32 @@ data "archive_file" "function_app" {
   output_path = "${path.module}/function-app.zip"
 }
 
-# azurerm_linux_function_app's zip_deploy_file will only redeploy the function
-# when the path changes, so copy the zip to a versioned filename.
-resource "local_file" "function_app_versioned" {
-  filename = "${path.module}/function-app-${data.archive_file.function_app.output_sha256}.zip"
-  source = "${path.module}/function-app.zip"
-}
-
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
+  name                = "${var.prefix}-relay-app"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
   service_plan_id     = azurerm_service_plan.stacklet.id
 
   storage_account_name       = azurerm_storage_account.stacklet.name
   storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
+  # storage_uses_managed_identity = true
+  # After the function has been deployed, this value can be turned on, and
+  # the storage_account_access_key removed. However, doing this also stops
+  # future redeployment of the function code from working as the azure cli
+  # looks for the `AzureWebJobsStorage` application setting. When using the
+  # managed identity, this value is not set, and instead
+  # `AzureWebJobsStorage__accountKey` is set. This causes the azure cli to
+  # fail to deploy the function code.
 
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
   https_only                    = true
-
-  # Deploy from zip file
-  zip_deploy_file = local_file.function_app_versioned.filename
+  client_certificate_enabled    = false
+  public_network_access_enabled = false
 
   site_config {
-    application_insights_key = azurerm_application_insights.stacklet.instrumentation_key
+    application_insights_key               = azurerm_application_insights.stacklet.instrumentation_key
+    application_insights_connection_string = azurerm_application_insights.stacklet.connection_string
 
     application_stack {
       python_version = "3.12"
@@ -116,6 +118,7 @@ resource "azurerm_linux_function_app" "stacklet" {
 
     # More somewhat pointless HTTP security; the HTTP data plane is unused.
     minimum_tls_version = "1.3"
+    http2_enabled       = true
   }
 
   app_settings = {
@@ -148,5 +151,39 @@ resource "azurerm_linux_function_app" "stacklet" {
     ignore_changes = [
       tags["hidden-link: /app-insights-resource-id"]
     ]
+  }
+}
+
+# In order to get the underlying function in the application to be redeployed
+# when the zip hash changes, we need use fork out to the azure cli.
+# We also need to temporarily enable public access to allow the zip file to be deployed.
+resource "null_resource" "deploy_function_app" {
+  depends_on = [azurerm_linux_function_app.stacklet]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Temporarily enable public access
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Enabled
+
+      # Deploy the code
+      az functionapp deployment source config-zip \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --src ${data.archive_file.function_app.output_path} \
+        --build-remote true
+
+      # Disable public access again
+      az functionapp update \
+        --name ${azurerm_linux_function_app.stacklet.name} \
+        --resource-group ${azurerm_resource_group.stacklet_rg.name} \
+        --set publicNetworkAccess=Disabled
+    EOT
+  }
+
+  triggers = {
+    build_hash = data.archive_file.function_app.output_sha256
   }
 }

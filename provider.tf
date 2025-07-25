@@ -34,4 +34,7 @@ provider "azurerm" {
   }
 
   subscription_id = var.subscription_id
+
+  # Use Azure AD authentication for storage operations (required when access keys are disabled)
+  storage_use_azuread = true
 }

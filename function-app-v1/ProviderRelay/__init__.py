@@ -32,6 +32,7 @@ def get_session(client_id, audience, role_arn):
         managed_identity_client=client_id, exclude_environment_credential=True
     )
     token = creds.get_token(audience)
+    logging.info(f"token: {token}")
     try:
         res = client.assume_role_with_web_identity(
             WebIdentityToken=token.token,
