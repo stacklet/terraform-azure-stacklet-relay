@@ -64,6 +64,10 @@ resource "azuread_application" "stacklet_application" {
   feature_tags {
     enterprise = true
   }
+
+  api {
+    requested_access_token_version = 2
+  }
 }
 
 data "azuread_application" "stacklet_application" {
