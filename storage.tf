@@ -28,12 +28,13 @@ resource "random_string" "storage_account_suffix" {
 
 resource "azurerm_storage_account" "stacklet" {
   # there is a global uniqueness constraint on storage account names, as well as a length requirement of 3-24 characters
-  name                     = substr("${local.prefix_no_hyphens}${random_string.storage_account_suffix.result}", 0, 23)
-  resource_group_name      = azurerm_resource_group.stacklet_rg.name
-  location                 = azurerm_resource_group.stacklet_rg.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  tags                     = local.tags
+  name                          = substr("${local.prefix_no_hyphens}${random_string.storage_account_suffix.result}", 0, 23)
+  resource_group_name           = azurerm_resource_group.stacklet_rg.name
+  location                      = azurerm_resource_group.stacklet_rg.location
+  account_tier                  = "Standard"
+  account_replication_type      = "LRS"
+  tags                          = local.tags
+  public_network_access_enabled = false
 }
 
 resource "azurerm_storage_queue" "stacklet" {
