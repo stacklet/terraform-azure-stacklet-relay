@@ -33,10 +33,32 @@ resource "azurerm_storage_account" "stacklet" {
   location                 = azurerm_resource_group.stacklet_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  tags                     = local.tags
+
+  # Disable public network access - only private endpoints allowed
+  public_network_access_enabled = false
+
+  # Network rules to control access
+  network_rules {
+    default_action = "Deny"
+    # Allow Azure services (like Function Apps) to access
+    bypass = ["AzureServices"]
+  }
+
+  tags = local.tags
 }
 
-resource "azurerm_storage_queue" "stacklet" {
-  name                 = "${azurerm_storage_account.stacklet.name}-queue"
-  storage_account_name = azurerm_storage_account.stacklet.name
+# Using azapi provider to create storage queue via ARM API (control plane)
+# This avoids the need for Terraform to access storage data plane APIs
+resource "azapi_resource" "stacklet_queue" {
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2023-01-01"
+  name      = "${azurerm_storage_account.stacklet.name}-queue"
+  parent_id = "${azurerm_storage_account.stacklet.id}/queueServices/default"
+
+  body = {
+    properties = {
+      metadata = {}
+    }
+  }
+
+  depends_on = [azurerm_storage_account.stacklet]
 }

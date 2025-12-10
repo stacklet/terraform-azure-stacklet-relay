@@ -45,7 +45,7 @@ resource "azurerm_eventgrid_system_topic_event_subscription" "azure_rm_event_sub
 
   storage_queue_endpoint {
     storage_account_id = azurerm_storage_account.stacklet.id
-    queue_name         = azurerm_storage_queue.stacklet.name
+    queue_name         = azapi_resource.stacklet_queue.name
   }
 
   included_event_types = var.event_names

@@ -40,7 +40,7 @@ resource "local_file" "function_json" {
         name       = "msg"
         type       = "queueTrigger"
         direction  = "in"
-        queueName  = azurerm_storage_queue.stacklet.name
+        queueName  = azapi_resource.stacklet_queue.name
         connection = "AzureWebJobsStorage"
       }
     ]
@@ -129,7 +129,7 @@ resource "azurerm_linux_function_app" "stacklet" {
     # Application configuration
     AZURE_CLIENT_ID          = azurerm_user_assigned_identity.stacklet_identity.client_id
     AZURE_AUDIENCE           = local.audience
-    AZURE_STORAGE_QUEUE_NAME = azurerm_storage_queue.stacklet.name
+    AZURE_STORAGE_QUEUE_NAME = azapi_resource.stacklet_queue.name
     AWS_TARGET_ACCOUNT       = var.aws_target_account
     AWS_TARGET_REGION        = var.aws_target_region
     AWS_TARGET_ROLE_NAME     = var.aws_target_role_name

@@ -14,7 +14,7 @@ The system works through a four-step process:
   - `Microsoft.Resources.ResourceDeleteSuccess` (resource deletions)
 
 ### 2. Event Storage (Azure Storage Queue)
-- Events are queued in an **Azure Storage Queue** for reliable processing
+- Events are queued in a private **Azure Storage Queue** for reliable processing
 - Uses CloudEvent schema v1.0 format for standardized event structure
 
 ### 3. Event Processing (Azure Function)
