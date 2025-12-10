@@ -33,7 +33,26 @@ resource "azurerm_storage_account" "stacklet" {
   location                 = azurerm_resource_group.stacklet_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  tags                     = local.tags
+
+  # Defaults to https only, and min tls version is 1.2
+
+  # allow_nested_items_to_be_public = false
+  # Setting this value to false prevents the deployment of the function app
+  # using the azure cli.
+
+  # public_network_access_enabled = true
+  # Setting this value stops terraform being able to query the state of the
+  # storage account. It seems that the control plane and data plane are
+  # effectively configured together. In order to turn this value on, the
+  # storage account needs to configure either selective IP allow lists or
+  # selective VPCs.
+
+  # shared_access_key_enabled = false
+  # Turning this value on seems to prevent the servers running the function
+  # app from acquiring some form of internal lock that is necessary, so the
+  # azure function wrapping code is never able to query the storage queue.
+
+  tags = local.tags
 }
 
 resource "azurerm_storage_queue" "stacklet" {
