@@ -39,10 +39,6 @@ resource "azurerm_storage_account" "stacklet" {
   # after the function app is deployed, but we need to set it to true again temporarily to allow the function
   # app to upload any new function code.
   public_network_access_enabled = true
-  network_rules {
-    default_action = "Allow"
-    bypass = null
-  }
 
   tags = local.tags
 }
@@ -74,12 +70,6 @@ resource "azapi_update_resource" "stacklet_storage_network" {
     properties = {
       # Disable public network access - only private endpoints allowed
       publicNetworkAccess = "Disabled"
-      # Network rules to control access
-      networkAcls = {
-        defaultAction = "Deny"
-        # Allow Azure services (like Function Apps) to access
-        bypass = "AzureServices"
-      }
     }
   }
 
