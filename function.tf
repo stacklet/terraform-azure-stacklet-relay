@@ -104,6 +104,8 @@ resource "azurerm_linux_function_app" "stacklet" {
   # is unused, to avoid showing up in security checks.
   https_only                    = true
 
+  public_network_access_enabled = false
+
   # Deploy from zip file
   zip_deploy_file = local_file.function_app_versioned.filename
 
