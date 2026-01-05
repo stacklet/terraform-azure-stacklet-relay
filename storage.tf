@@ -43,6 +43,7 @@ resource "azurerm_storage_account" "stacklet" {
   tags = local.tags
 }
 
+
 # Using azapi provider to create storage queue via ARM API (control plane)
 # This avoids the need for Terraform to access storage data plane APIs
 resource "azapi_resource" "stacklet_queue" {
@@ -70,6 +71,15 @@ resource "azapi_update_resource" "stacklet_storage_network" {
     properties = {
       # Disable public network access - only private endpoints allowed
       publicNetworkAccess = "Disabled"
+      networkAcls = {
+        defaultAction = "Deny"
+        virtualNetworkRules = [
+          {
+            id     = azurerm_subnet.stacklet_function.id
+            action = "Allow"
+          }
+        ]
+      }
     }
   }
 

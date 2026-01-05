@@ -27,7 +27,7 @@ resource "azurerm_service_plan" "stacklet" {
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
   os_type             = "Linux"
-  sku_name            = "Y1"
+  sku_name            = "EP1"
   tags                = local.tags
 }
 
@@ -88,11 +88,11 @@ data "archive_file" "function_app" {
 # when the path changes, so copy the zip to a versioned filename.
 resource "local_file" "function_app_versioned" {
   filename = "${path.module}/function-app-${data.archive_file.function_app.output_sha256}.zip"
-  source = "${path.module}/function-app.zip"
+  source   = "${path.module}/function-app.zip"
 }
 
 resource "azurerm_linux_function_app" "stacklet" {
-  name                = "stacklet-${var.prefix}-function-app-${substr(random_string.storage_account_suffix.result, 0, 15)}"
+  name                = "${var.prefix}-relay-app"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   location            = azurerm_resource_group.stacklet_rg.location
   service_plan_id     = azurerm_service_plan.stacklet.id
@@ -102,9 +102,10 @@ resource "azurerm_linux_function_app" "stacklet" {
 
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
-  https_only                    = true
+  https_only = true
 
-  public_network_access_enabled = false
+  # Temporarily enable public access for zip deployment, then disable via azapi_update_resource
+  public_network_access_enabled = true
 
   # Deploy from zip file
   zip_deploy_file = local_file.function_app_versioned.filename
@@ -118,7 +119,13 @@ resource "azurerm_linux_function_app" "stacklet" {
 
     # More somewhat pointless HTTP security; the HTTP data plane is unused.
     minimum_tls_version = "1.3"
+
+    # Enable VNet integration for outbound traffic to access Storage Account
+    vnet_route_all_enabled = true
   }
+
+  # VNet integration configuration
+  virtual_network_subnet_id = azurerm_subnet.stacklet_function.id
 
   app_settings = {
     # Build and deployment settings
@@ -137,6 +144,12 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_ROLE_NAME     = var.aws_target_role_name
     AWS_TARGET_PARTITION     = var.aws_target_partition
     AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
+
+    # Enable running from package for better performance and deployment reliability
+    WEBSITE_RUN_FROM_PACKAGE = "1"
+
+    # Storage connection string for queue triggers
+    AzureWebJobsStorage = "DefaultEndpointsProtocol=https;AccountName=${azurerm_storage_account.stacklet.name};AccountKey=${azurerm_storage_account.stacklet.primary_access_key};EndpointSuffix=core.windows.net"
   }
 
   identity {
@@ -149,6 +162,27 @@ resource "azurerm_linux_function_app" "stacklet" {
   lifecycle {
     ignore_changes = [
       tags["hidden-link: /app-insights-resource-id"]
+    ]
+  }
+}
+
+# Update Function App to disable public network access after deployment
+resource "azapi_update_resource" "stacklet_function_network" {
+  type        = "Microsoft.Web/sites@2023-12-01"
+  resource_id = azurerm_linux_function_app.stacklet.id
+
+  body = {
+    properties = {
+      publicNetworkAccess = "Disabled"
+    }
+  }
+
+  depends_on = [azurerm_linux_function_app.stacklet]
+
+  # Ensure that the update is applied if the public network access is enabled again
+  lifecycle {
+    replace_triggered_by = [
+      azurerm_linux_function_app.stacklet.public_network_access_enabled
     ]
   }
 }
