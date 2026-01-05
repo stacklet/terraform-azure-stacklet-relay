@@ -60,9 +60,33 @@ resource "azapi_resource" "stacklet_queue" {
   depends_on = [azurerm_storage_account.stacklet]
 }
 
+# Create private DNS zone for storage queue
+resource "azurerm_private_dns_zone" "storage_queue" {
+  name                = "privatelink.queue.core.windows.net"
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  tags                = local.tags
+}
+
+# Link private DNS zone to VNet
+resource "azurerm_private_dns_zone_virtual_network_link" "storage_queue" {
+  name                  = "${var.prefix}-storage-queue-dns-link"
+  resource_group_name   = azurerm_resource_group.stacklet_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.storage_queue.name
+  virtual_network_id    = azurerm_virtual_network.stacklet.id
+  registration_enabled  = false
+  tags                  = local.tags
+}
+
+# Grant Storage Queue Data Contributor role to the function app's managed identity
+resource "azurerm_role_assignment" "function_storage_queue" {
+  scope                = azurerm_storage_account.stacklet.id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+}
+
 # Update storage account network settings to make it private after function app is deployed.
 # This ensures the function app code can be uploaded to the storage account before we lock it
-# down, and then the actual function run can still occur due to the bypass setting.
+# down, and then the actual function can access it via the vnet.
 resource "azapi_update_resource" "stacklet_storage_network" {
   type        = "Microsoft.Storage/storageAccounts@2023-01-01"
   resource_id = azurerm_storage_account.stacklet.id
@@ -73,12 +97,6 @@ resource "azapi_update_resource" "stacklet_storage_network" {
       publicNetworkAccess = "Disabled"
       networkAcls = {
         defaultAction = "Deny"
-        virtualNetworkRules = [
-          {
-            id     = azurerm_subnet.stacklet_function.id
-            action = "Allow"
-          }
-        ]
       }
     }
   }

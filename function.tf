@@ -97,8 +97,8 @@ resource "azurerm_linux_function_app" "stacklet" {
   location            = azurerm_resource_group.stacklet_rg.location
   service_plan_id     = azurerm_service_plan.stacklet.id
 
-  storage_account_name       = azurerm_storage_account.stacklet.name
-  storage_account_access_key = azurerm_storage_account.stacklet.primary_access_key
+  storage_account_name          = azurerm_storage_account.stacklet.name
+  storage_uses_managed_identity = true
 
   # Enforce HTTPS on the HTTP endpoint even though the data plane aspect of it
   # is unused, to avoid showing up in security checks.
@@ -148,8 +148,10 @@ resource "azurerm_linux_function_app" "stacklet" {
     # Enable running from package for better performance and deployment reliability
     WEBSITE_RUN_FROM_PACKAGE = "1"
 
-    # Storage connection string for queue triggers
-    AzureWebJobsStorage = "DefaultEndpointsProtocol=https;AccountName=${azurerm_storage_account.stacklet.name};AccountKey=${azurerm_storage_account.stacklet.primary_access_key};EndpointSuffix=core.windows.net"
+    # Use managed identity for storage access instead of connection string
+    AzureWebJobsStorage__accountName = azurerm_storage_account.stacklet.name
+    AzureWebJobsStorage__credential  = "managedidentity"
+    AzureWebJobsStorage__clientId    = azurerm_user_assigned_identity.stacklet_identity.client_id
   }
 
   identity {
