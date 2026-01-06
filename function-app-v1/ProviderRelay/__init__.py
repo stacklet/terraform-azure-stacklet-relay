@@ -61,9 +61,6 @@ def main(msg: func.QueueMessage):
     partition = os.environ["AWS_TARGET_PARTITION"]
     role_arn = f"arn:{partition}:iam::{target_account}:role/{role_name}"
 
-    session = get_session(client_id, audience, role_arn)
-    events_client = session.client("events", region_name=region)
-
     body_string = msg.get_body().decode("utf-8")
     body = json.loads(body_string)
     source = body["data"]["operationName"].split("/")[0]
@@ -71,6 +68,9 @@ def main(msg: func.QueueMessage):
     try:
         logging.info('Forwarding event to Stacklet')
         logging.info(body_string)
+
+        session = get_session(client_id, audience, role_arn)
+        events_client = session.client("events", region_name=region)
         events_client.put_events(
             Entries=[
                 {
@@ -83,10 +83,12 @@ def main(msg: func.QueueMessage):
             ]
         )
     except botocore.exceptions.ClientError as e:
-        if e.response["Error"]["Code"] == "AccessDeniedException" and str(e).endswith(
-            "with an explicit deny in a resource-based policy"
-        ):
-            logging.warning("skipping event")
+        if e.response["Error"]["Code"] == "AccessDeniedException":
+            # If the permissions on the AWS side are incorrect, there's no point in retrying,
+            # so we log the error and move on and return "success" to drop the event from the queue.
+            logging.error(f"Failed to forward event: {e}")
             return
-        logging.error(f"failed to put event:{e}")
-        raise
+        else:
+            # Note: unhandled exceptions will be logged by the function app and the event will
+            # be retried MaxDequeueCount (5) times before being moved to the "poison" queue.
+            raise
