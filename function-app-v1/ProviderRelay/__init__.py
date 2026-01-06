@@ -32,15 +32,11 @@ def get_session(client_id, audience, role_arn):
         managed_identity_client=client_id, exclude_environment_credential=True
     )
     token = creds.get_token(audience)
-    try:
-        res = client.assume_role_with_web_identity(
-            WebIdentityToken=token.token,
-            RoleArn=role_arn,
-            RoleSessionName="StackletAzureRelay",
-        )
-    except Exception as e:
-        logging.error(f"unable to assume role:{e}")
-        raise
+    res = client.assume_role_with_web_identity(
+        WebIdentityToken=token.token,
+        RoleArn=role_arn,
+        RoleSessionName="StackletAzureRelay",
+    )
 
     session = boto3.session.Session(
         aws_access_key_id=res["Credentials"]["AccessKeyId"],
@@ -65,11 +61,24 @@ def main(msg: func.QueueMessage):
     body = json.loads(body_string)
     source = body["data"]["operationName"].split("/")[0]
 
-    try:
-        logging.info('Forwarding event to Stacklet')
-        logging.info(body_string)
+    logging.info('Handling event:')
+    logging.info(body_string)
 
+    try:
         session = get_session(client_id, audience, role_arn)
+    except botocore.exceptions.ClientError as e:
+        logging.error(f"Error getting session: {e}")
+        if e.response["Error"]["Code"] == "AccessDeniedException":
+            return  # Don't retry AWS permission (configuration) errors.
+        else:
+            raise  # Retry other AWS errors (e.g. network errors, etc.) as they may be transient.
+    except Exception as e:
+        # Note: Unhandled exceptions will cause the event to be retried MaxDequeueCount (5) times
+        # before being moved to the "poison" a.k.a. dead-letter queue.
+        logging.error(f"Unexpected error getting session ({type(e).__name__}): {e}")
+        raise
+
+    try:
         events_client = session.client("events", region_name=region)
         events_client.put_events(
             Entries=[
@@ -82,13 +91,13 @@ def main(msg: func.QueueMessage):
                 }
             ]
         )
+        logging.info("Event forwarded to Stacklet")
     except botocore.exceptions.ClientError as e:
+        logging.error(f"Error forwarding event: {e}")
         if e.response["Error"]["Code"] == "AccessDeniedException":
-            # If the permissions on the AWS side are incorrect, there's no point in retrying,
-            # so we log the error and move on and return "success" to drop the event from the queue.
-            logging.error(f"Failed to forward event: {e}")
-            return
+            return  # Don't retry AWS permission (configuration) errors.
         else:
-            # Note: unhandled exceptions will be logged by the function app and the event will
-            # be retried MaxDequeueCount (5) times before being moved to the "poison" queue.
-            raise
+            raise  # Retry other AWS errors (e.g. network errors, etc.) as they may be transient.
+    except Exception as e:
+        logging.error(f"Unexpected error forwarding event ({type(e).__name__}): {e}")
+        raise  # Not sure what other errors could happen, but maybe worth retrying.
