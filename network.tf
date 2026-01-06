@@ -40,3 +40,13 @@ resource "azurerm_subnet" "stacklet_function" {
     }
   }
 }
+
+resource "azurerm_subnet" "stacklet_private_endpoints" {
+  name                 = "${var.prefix}-pe-subnet"
+  resource_group_name  = azurerm_resource_group.stacklet_rg.name
+  virtual_network_name = azurerm_virtual_network.stacklet.name
+  address_prefixes     = ["10.0.2.0/24"]
+
+  # Enable service endpoint for Storage
+  service_endpoints = ["Microsoft.Storage"]
+}

@@ -60,14 +60,95 @@ resource "azapi_resource" "stacklet_queue" {
   depends_on = [azurerm_storage_account.stacklet]
 }
 
-# Create private DNS zone for storage queue
+# Create private endpoint for storage queue service
+resource "azurerm_private_endpoint" "stacklet_storage_queue" {
+  name                = "${var.prefix}-storage-queue-pe"
+  location            = azurerm_resource_group.stacklet_rg.location
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  subnet_id           = azurerm_subnet.stacklet_private_endpoints.id
+
+  private_service_connection {
+    name                           = "${var.prefix}-storage-queue-psc"
+    private_connection_resource_id = azurerm_storage_account.stacklet.id
+    subresource_names              = ["queue"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "default"
+    private_dns_zone_ids = [azurerm_private_dns_zone.storage_queue.id]
+  }
+
+  depends_on = [azurerm_linux_function_app.stacklet]
+  tags       = local.tags
+}
+
+# Create private endpoint for storage blob service
+resource "azurerm_private_endpoint" "stacklet_storage_blob" {
+  name                = "${var.prefix}-storage-blob-pe"
+  location            = azurerm_resource_group.stacklet_rg.location
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  subnet_id           = azurerm_subnet.stacklet_private_endpoints.id
+
+  private_service_connection {
+    name                           = "${var.prefix}-storage-blob-psc"
+    private_connection_resource_id = azurerm_storage_account.stacklet.id
+    subresource_names              = ["blob"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "default"
+    private_dns_zone_ids = [azurerm_private_dns_zone.storage_blob.id]
+  }
+
+  depends_on = [azurerm_linux_function_app.stacklet]
+  tags       = local.tags
+}
+
+# Create private endpoint for storage table service
+resource "azurerm_private_endpoint" "stacklet_storage_table" {
+  name                = "${var.prefix}-storage-table-pe"
+  location            = azurerm_resource_group.stacklet_rg.location
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  subnet_id           = azurerm_subnet.stacklet_private_endpoints.id
+
+  private_service_connection {
+    name                           = "${var.prefix}-storage-table-psc"
+    private_connection_resource_id = azurerm_storage_account.stacklet.id
+    subresource_names              = ["table"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "default"
+    private_dns_zone_ids = [azurerm_private_dns_zone.storage_table.id]
+  }
+
+  depends_on = [azurerm_linux_function_app.stacklet]
+  tags       = local.tags
+}
+
+# Create private DNS zones for storage services
 resource "azurerm_private_dns_zone" "storage_queue" {
   name                = "privatelink.queue.core.windows.net"
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   tags                = local.tags
 }
 
-# Link private DNS zone to VNet
+resource "azurerm_private_dns_zone" "storage_blob" {
+  name                = "privatelink.blob.core.windows.net"
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  tags                = local.tags
+}
+
+resource "azurerm_private_dns_zone" "storage_table" {
+  name                = "privatelink.table.core.windows.net"
+  resource_group_name = azurerm_resource_group.stacklet_rg.name
+  tags                = local.tags
+}
+
+# Link private DNS zones to VNet
 resource "azurerm_private_dns_zone_virtual_network_link" "storage_queue" {
   name                  = "${var.prefix}-storage-queue-dns-link"
   resource_group_name   = azurerm_resource_group.stacklet_rg.name
@@ -77,10 +158,42 @@ resource "azurerm_private_dns_zone_virtual_network_link" "storage_queue" {
   tags                  = local.tags
 }
 
+resource "azurerm_private_dns_zone_virtual_network_link" "storage_blob" {
+  name                  = "${var.prefix}-storage-blob-dns-link"
+  resource_group_name   = azurerm_resource_group.stacklet_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.storage_blob.name
+  virtual_network_id    = azurerm_virtual_network.stacklet.id
+  registration_enabled  = false
+  tags                  = local.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "storage_table" {
+  name                  = "${var.prefix}-storage-table-dns-link"
+  resource_group_name   = azurerm_resource_group.stacklet_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.storage_table.name
+  virtual_network_id    = azurerm_virtual_network.stacklet.id
+  registration_enabled  = false
+  tags                  = local.tags
+}
+
 # Grant Storage Queue Data Contributor role to the function app's managed identity
 resource "azurerm_role_assignment" "function_storage_queue" {
   scope                = azurerm_storage_account.stacklet.id
   role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+}
+
+# Grant Storage Blob Data Contributor role for function runtime files and packages
+resource "azurerm_role_assignment" "function_storage_blob" {
+  scope                = azurerm_storage_account.stacklet.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
+}
+
+# Grant Storage Account Contributor role for general storage operations
+resource "azurerm_role_assignment" "function_storage_account" {
+  scope                = azurerm_storage_account.stacklet.id
+  role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_user_assigned_identity.stacklet_identity.principal_id
 }
 
@@ -101,7 +214,12 @@ resource "azapi_update_resource" "stacklet_storage_network" {
     }
   }
 
-  depends_on = [azurerm_linux_function_app.stacklet]
+  depends_on = [
+    azurerm_linux_function_app.stacklet,
+    azurerm_private_endpoint.stacklet_storage_queue,
+    azurerm_private_endpoint.stacklet_storage_blob,
+    azurerm_private_endpoint.stacklet_storage_table
+  ]
 
   # Ensure that the update is applied if the public network access is enabled again (which will
   # happen on every update because the azurerm_storage_account resource will always make it
