@@ -31,11 +31,12 @@ The system works through a four-step process:
 
 1. **Azure Resource Group** - Contains all module resources
 2. **Azure EventGrid System Topic** - Captures subscription-level events
-3. **Azure Storage Account & Queue** - Provides reliable event storage
-4. **Azure Function App** - Handles event processing and forwarding
-5. **Azure Application Insights** - Enables monitoring and logging
-6. **Azure AD Application & Service Principal** - Manages cross-cloud authentication
-7. **User Assigned Identity** - Provides managed identity for the function
+3. **Azure Virtual Network** - Keeps all network traffic private
+4. **Azure Storage Account & Queue** - Provides reliable event storage
+5. **Azure Function App** - Handles event processing and forwarding
+6. **Azure Application Insights** - Enables monitoring and logging
+7. **Azure AD Application & Service Principal** - Manages cross-cloud authentication
+8. **User Assigned Identity** - Provides managed identity for the function
 
 ## Benefits
 
