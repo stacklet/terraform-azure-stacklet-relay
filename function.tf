@@ -145,9 +145,6 @@ resource "azurerm_linux_function_app" "stacklet" {
     AWS_TARGET_PARTITION     = var.aws_target_partition
     AWS_TARGET_EVENT_BUS     = var.aws_target_event_bus
 
-    # Enable running from package for better performance and deployment reliability
-    WEBSITE_RUN_FROM_PACKAGE = "1"
-
     # Use managed identity for storage access instead of connection string
     AzureWebJobsStorage__accountName = azurerm_storage_account.stacklet.name
     AzureWebJobsStorage__credential  = "managedidentity"
