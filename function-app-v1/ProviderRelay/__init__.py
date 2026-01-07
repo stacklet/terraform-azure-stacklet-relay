@@ -60,13 +60,13 @@ def main(msg: func.QueueMessage):
     body = json.loads(body_string)
     source = body["data"]["operationName"].split("/")[0]
 
-    logging.info(f"[stacklet] Handling event {body["data"]["operationName"]} for {body["data"]["resourceUri"]}")
+    logging.info(f"[stacklet] [{msg.id}] Handling event {body["data"]["operationName"]} for {body["data"]["resourceUri"]}")
     logging.info(body_string)
 
     try:
         session = get_session(client_id, audience, role_arn)
     except botocore.exceptions.ClientError as e:
-        logging.error(f"[stacklet] Error getting session: {e}")
+        logging.error(f"[stacklet] [{msg.id}] Error getting session: {e}")
         if e.response["Error"]["Code"] == "AccessDeniedException":
             return  # Don't retry AWS permission (configuration) errors.
         else:
@@ -74,7 +74,7 @@ def main(msg: func.QueueMessage):
     except Exception as e:
         # Note: Unhandled exceptions will cause the event to be retried MaxDequeueCount (5) times
         # before being moved to the "poison" a.k.a. dead-letter queue.
-        logging.error(f"[stacklet] Unexpected error getting session ({type(e).__name__}): {e}")
+        logging.error(f"[stacklet] [{msg.id}] Unexpected error getting session ({type(e).__name__}): {e}")
         raise
 
     try:
@@ -90,13 +90,13 @@ def main(msg: func.QueueMessage):
                 }
             ]
         )
-        logging.info("[stacklet] Event forwarded to Stacklet")
+        logging.info(f"[stacklet] [{msg.id}] Event forwarded to Stacklet")
     except botocore.exceptions.ClientError as e:
-        logging.error(f"[stacklet] Error forwarding event: {e}")
+        logging.error(f"[stacklet] [{msg.id}] Error forwarding event: {e}")
         if e.response["Error"]["Code"] == "AccessDeniedException":
             return  # Don't retry AWS permission (configuration) errors.
         else:
             raise  # Retry other AWS errors (e.g. network errors, etc.) as they may be transient.
     except Exception as e:
-        logging.error(f"[stacklet] Unexpected error forwarding event ({type(e).__name__}): {e}")
+        logging.error(f"[stacklet] [{msg.id}] Unexpected error forwarding event ({type(e).__name__}): {e}")
         raise  # Not sure what other errors could happen, but maybe worth retrying.
