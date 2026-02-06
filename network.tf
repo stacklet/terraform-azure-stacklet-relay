@@ -44,6 +44,12 @@ resource "azurerm_subnet" "stacklet_function" {
       actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
     }
   }
+
+  lifecycle {
+    replace_triggered_by = [
+      azurerm_virtual_network.stacklet.address_space
+    ]
+  }
 }
 
 resource "azurerm_subnet" "stacklet_private_endpoints" {
@@ -54,4 +60,10 @@ resource "azurerm_subnet" "stacklet_private_endpoints" {
 
   # Enable service endpoint for Storage
   service_endpoints = ["Microsoft.Storage"]
+
+  lifecycle {
+    replace_triggered_by = [
+      azurerm_virtual_network.stacklet.address_space
+    ]
+  }
 }
