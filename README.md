@@ -51,19 +51,24 @@ This system enables:
 
 | Name | Version |
 |------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.0 |
+| <a name="requirement_archive"></a> [archive](#requirement\_archive) | >=2.7.1 |
 | <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | >=2.8.0 |
+| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >=3.7.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >=4.56.0 |
+| <a name="requirement_local"></a> [local](#requirement\_local) | >=2.6.2 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >=3.8.1 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_archive"></a> [archive](#provider\_archive) | n/a |
+| <a name="provider_archive"></a> [archive](#provider\_archive) | >=2.7.1 |
 | <a name="provider_azapi"></a> [azapi](#provider\_azapi) | >=2.8.0 |
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | n/a |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | >=3.7.0 |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >=4.56.0 |
-| <a name="provider_local"></a> [local](#provider\_local) | n/a |
-| <a name="provider_random"></a> [random](#provider\_random) | n/a |
+| <a name="provider_local"></a> [local](#provider\_local) | >=2.6.2 |
+| <a name="provider_random"></a> [random](#provider\_random) | >=3.8.1 |
 
 ## Modules
 
@@ -111,9 +116,7 @@ No modules.
 | [azuread_application.stacklet_application](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/application) | data source |
 | [azuread_client_config.current](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/client_config) | data source |
 | [azuread_service_principal.stacklet_sp](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/service_principal) | data source |
-| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 | [azurerm_eventgrid_system_topic.azure_rm_events](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/eventgrid_system_topic) | data source |
-| [azurerm_role_definition.builtin](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/role_definition) | data source |
 | [azurerm_subscription.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subscription) | data source |
 
 ## Inputs

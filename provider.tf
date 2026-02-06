@@ -27,7 +27,24 @@ terraform {
       source  = "azure/azapi"
       version = ">=2.8.0"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = ">=2.6.2"
+    }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = ">=3.7.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">=3.8.1"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = ">=2.7.1"
+    }
   }
+  required_version = "~> 1.0"
 }
 
 provider "azurerm" {

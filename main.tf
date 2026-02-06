@@ -14,16 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-data "azurerm_client_config" "current" {}
-
 data "azuread_client_config" "current" {}
 
 data "azurerm_subscription" "current" {}
-
-
-data "azurerm_role_definition" "builtin" {
-  name = "Contributor"
-}
 
 resource "random_uuid" "app_role_uuid" {}
 
