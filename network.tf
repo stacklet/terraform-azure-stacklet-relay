@@ -14,9 +14,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+locals {
+  vnet_mask      = tonumber(split("/", var.vnet_address_space)[1])
+  subnet_newbits = var.subnet_prefix_length - local.vnet_mask
+}
+
 resource "azurerm_virtual_network" "stacklet" {
   name                = "${var.prefix}-vnet"
-  address_space       = ["10.0.0.0/16"]
+  address_space       = [var.vnet_address_space]
   location            = azurerm_resource_group.stacklet_rg.location
   resource_group_name = azurerm_resource_group.stacklet_rg.name
   tags                = local.tags
@@ -26,7 +31,7 @@ resource "azurerm_subnet" "stacklet_function" {
   name                 = "${var.prefix}-function-subnet"
   resource_group_name  = azurerm_resource_group.stacklet_rg.name
   virtual_network_name = azurerm_virtual_network.stacklet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = [cidrsubnet(var.vnet_address_space, local.subnet_newbits, 1)]
 
   # Enable service endpoint for Storage to allow access to Storage Account
   service_endpoints = ["Microsoft.Storage"]
@@ -39,14 +44,26 @@ resource "azurerm_subnet" "stacklet_function" {
       actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
     }
   }
+
+  lifecycle {
+    replace_triggered_by = [
+      azurerm_virtual_network.stacklet.address_space
+    ]
+  }
 }
 
 resource "azurerm_subnet" "stacklet_private_endpoints" {
   name                 = "${var.prefix}-pe-subnet"
   resource_group_name  = azurerm_resource_group.stacklet_rg.name
   virtual_network_name = azurerm_virtual_network.stacklet.name
-  address_prefixes     = ["10.0.2.0/24"]
+  address_prefixes     = [cidrsubnet(var.vnet_address_space, local.subnet_newbits, 2)]
 
   # Enable service endpoint for Storage
   service_endpoints = ["Microsoft.Storage"]
+
+  lifecycle {
+    replace_triggered_by = [
+      azurerm_virtual_network.stacklet.address_space
+    ]
+  }
 }

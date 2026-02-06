@@ -111,3 +111,25 @@ variable "azuread_application" {
   description = "Azure AD Application. One per tenant."
   default     = null
 }
+
+variable "vnet_address_space" {
+  type        = string
+  description = "Address space for the relay's virtual network"
+  default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrnetmask(var.vnet_address_space))
+    error_message = "Address space must be a valid network range (such as 10.0.0.0/16)"
+  }
+}
+
+variable "subnet_prefix_length" {
+  type        = string
+  description = "The network prefix size used for virtual network subnets"
+  default     = 24
+
+  validation {
+    condition     = var.subnet_prefix_length > local.vnet_mask + 1 && var.subnet_prefix_length <= 28
+    error_message = "The subnet mask must be between ${local.vnet_mask + 2} and 28"
+  }
+}
