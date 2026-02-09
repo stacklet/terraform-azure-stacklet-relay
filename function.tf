@@ -162,6 +162,10 @@ resource "azurerm_linux_function_app" "stacklet" {
     ignore_changes = [
       tags["hidden-link: /app-insights-resource-id"]
     ]
+
+    replace_triggered_by = [
+      azurerm_virtual_network.stacklet.address_space
+    ]
   }
 }
 
