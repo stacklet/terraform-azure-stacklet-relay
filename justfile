@@ -7,13 +7,7 @@ format:
 
 # lint files
 lint:
-    #!/usr/bin/env bash
-    set -e
-
-    terraform fmt -recursive --check
-    terraform init
-    terraform validate
-    tflint -f compact --recursive
+    uvx prek run --all-files
 
 # update module documentation in README
 docs:
