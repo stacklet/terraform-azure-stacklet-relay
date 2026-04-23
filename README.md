@@ -46,6 +46,51 @@ This system enables:
 - **Automated governance actions** - Automated remediation and policy enforcement
 - **Cross-cloud resource visibility** - Unified governance across Azure and AWS
 
+## Provider Configuration
+
+This module does not configure providers. The calling module must configure
+`azurerm`, `azapi`, and `azuread` providers and pass them to the module.
+
+The `subscription_id` previously accepted as a module input is now set
+directly on the `azurerm` and `azapi` provider blocks in the calling module.
+
+The `force_delete_resource_group` variable has also been removed. To allow
+deletion of a non-empty resource group, set
+`prevent_deletion_if_contains_resources = false` in the `features {}` block
+of your `azurerm` provider.
+
+Example:
+
+```hcl
+provider "azurerm" {
+  features {}
+  subscription_id = "your-subscription-id"
+}
+
+provider "azapi" {
+  subscription_id = "your-subscription-id"
+}
+
+provider "azuread" {}
+
+module "azure_relay" {
+  source = "github.com/stacklet/terraform-azure-stacklet-relay?ref=<sha>"
+
+  providers = {
+    azurerm = azurerm
+    azuread = azuread
+    azapi   = azapi
+  }
+
+  prefix               = "your-prefix"
+  aws_target_account   = "123456789012"
+  aws_target_region    = "us-east-1"
+  aws_target_role_name = "your-prefix-azure-relay"
+  aws_target_event_bus = "your-prefix-azure-relay"
+  aws_target_prefix    = "your-prefix"
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -133,12 +178,10 @@ No modules.
 | <a name="input_event_grid_topic_name"></a> [event\_grid\_topic\_name](#input\_event\_grid\_topic\_name) | System Topic Name for subscription events if it already exists | `string` | `null` | no |
 | <a name="input_event_grid_topic_resource_group"></a> [event\_grid\_topic\_resource\_group](#input\_event\_grid\_topic\_resource\_group) | System Topic resource group name for subscription events if it already exists | `string` | `null` | no |
 | <a name="input_event_names"></a> [event\_names](#input\_event\_names) | Event Names to filter | `list(string)` | <pre>[<br/>  "Microsoft.Resources.ResourceWriteSuccess",<br/>  "Microsoft.Resources.ResourceActionSuccess",<br/>  "Microsoft.Resources.ResourceDeleteSuccess"<br/>]</pre> | no |
-| <a name="input_force_delete_resource_group"></a> [force\_delete\_resource\_group](#input\_force\_delete\_resource\_group) | Force delete the resource group when terraform destroy is run | `bool` | `false` | no |
 | <a name="input_prefix"></a> [prefix](#input\_prefix) | A Prefix for all of the generated resources | `string` | n/a | yes |
 | <a name="input_resource_group_location"></a> [resource\_group\_location](#input\_resource\_group\_location) | Resource Group location for generated resources | `string` | `"East US"` | no |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource Group name for generated resources | `string` | `null` | no |
 | <a name="input_subnet_prefix_length"></a> [subnet\_prefix\_length](#input\_subnet\_prefix\_length) | The network prefix size used for virtual network subnets | `string` | `24` | no |
-| <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id) | Azure subscription ID. This could also be set using the ARM\_SUBSCRIPTION\_ID environment variable. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to resources | `map(any)` | `{}` | no |
 | <a name="input_vnet_address_space"></a> [vnet\_address\_space](#input\_vnet\_address\_space) | Address space for the relay's virtual network | `string` | `"10.0.0.0/16"` | no |
 
