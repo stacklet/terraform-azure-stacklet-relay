@@ -49,17 +49,18 @@ This system enables:
 ## Provider Configuration
 
 This module does not configure providers. The calling module must configure
-`azurerm`, `azapi`, and `azuread` providers and pass them to the module.
+`azurerm` and `azapi` providers with the target subscription. The `azuread`
+provider is configured automatically from your Azure credentials.
 
-The `subscription_id` previously accepted as a module input is now set
-directly on the `azurerm` and `azapi` provider blocks in the calling module.
+Credentials are sourced from the standard Azure authentication chain.
+For local use, authenticate via `az login`. For automated deployments,
+supply credentials via environment variables (`ARM_CLIENT_ID`,
+`ARM_CLIENT_SECRET`, `ARM_TENANT_ID`) or by setting `client_id`,
+`client_secret`, and `tenant_id` directly on your provider blocks.
 
-The `force_delete_resource_group` variable has also been removed. To allow
-deletion of a non-empty resource group, set
-`prevent_deletion_if_contains_resources = false` in the `features {}` block
-of your `azurerm` provider.
+### Standalone deployment
 
-Example:
+The common case — deploying the relay directly into a single subscription:
 
 ```hcl
 provider "azurerm" {
@@ -71,15 +72,48 @@ provider "azapi" {
   subscription_id = "your-subscription-id"
 }
 
-provider "azuread" {}
+module "azure_relay" {
+  source = "github.com/stacklet/terraform-azure-stacklet-relay?ref=<sha>"
+
+  prefix               = "your-prefix"
+  aws_target_account   = "123456789012"
+  aws_target_region    = "us-east-1"
+  aws_target_role_name = "your-prefix-azure-relay"
+  aws_target_event_bus = "your-prefix-azure-relay"
+  aws_target_prefix    = "your-prefix"
+}
+```
+
+### Embedded in a larger root module
+
+If your root module manages multiple Azure subscriptions simultaneously
+(e.g. a management subscription and a workload subscription), use provider
+aliases and pass them explicitly via `providers`:
+
+```hcl
+provider "azurerm" {
+  features {}
+  subscription_id = "management-subscription-id"
+}
+
+provider "azurerm" {
+  alias           = "workload"
+  features {}
+  subscription_id = "workload-subscription-id"
+}
+
+provider "azapi" {
+  alias           = "workload"
+  subscription_id = "workload-subscription-id"
+}
 
 module "azure_relay" {
   source = "github.com/stacklet/terraform-azure-stacklet-relay?ref=<sha>"
 
   providers = {
-    azurerm = azurerm
+    azurerm = azurerm.workload
     azuread = azuread
-    azapi   = azapi
+    azapi   = azapi.workload
   }
 
   prefix               = "your-prefix"
@@ -90,6 +124,23 @@ module "azure_relay" {
   aws_target_prefix    = "your-prefix"
 }
 ```
+
+## Migrating from a previous version
+
+The following breaking changes were made to align with Terraform's
+recommended practice of not declaring provider configurations in reusable
+modules:
+
+- `subscription_id` input variable removed — set `subscription_id` directly
+  on your `azurerm` and `azapi` provider blocks instead
+- `force_delete_resource_group` input variable removed — to allow deletion
+  of a non-empty resource group, set
+  `prevent_deletion_if_contains_resources = false` in the `features {}` block
+  of your `azurerm` provider
+
+No changes to deployed infrastructure are required. On your next
+`terraform plan` after updating the module SHA you should see 0 resource
+changes.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
