@@ -47,16 +47,4 @@ terraform {
   required_version = "~> 1.0"
 }
 
-provider "azurerm" {
-  features {
-    resource_group {
-      prevent_deletion_if_contains_resources = !var.force_delete_resource_group
-    }
-  }
 
-  subscription_id = var.subscription_id
-}
-
-provider "azapi" {
-  subscription_id = var.subscription_id
-}
