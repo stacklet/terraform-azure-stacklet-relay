@@ -148,23 +148,23 @@ changes.
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0, < 2.0.0 |
-| <a name="requirement_archive"></a> [archive](#requirement\_archive) | ~> 2.7 |
-| <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | ~> 2.8 |
-| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | ~> 3.7 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.56 |
-| <a name="requirement_local"></a> [local](#requirement\_local) | ~> 2.6 |
-| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.8 |
+| <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.7.1, < 3.0.0 |
+| <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | >= 2.8.0, < 3.0.0 |
+| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >= 3.7.0, < 4.0.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 4.56.0, < 5.0.0 |
+| <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.6.2, < 3.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1, < 4.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_archive"></a> [archive](#provider\_archive) | ~> 2.7 |
-| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | ~> 2.8 |
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | ~> 3.7 |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.56 |
-| <a name="provider_local"></a> [local](#provider\_local) | ~> 2.6 |
-| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.8 |
+| <a name="provider_archive"></a> [archive](#provider\_archive) | >= 2.7.1, < 3.0.0 |
+| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | >= 2.8.0, < 3.0.0 |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | >= 3.7.0, < 4.0.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.56.0, < 5.0.0 |
+| <a name="provider_local"></a> [local](#provider\_local) | >= 2.6.2, < 3.0.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1, < 4.0.0 |
 
 ## Modules
 

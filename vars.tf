@@ -41,8 +41,8 @@ variable "event_grid_topic_name" {
   default     = null
 
   validation {
-    condition     = var.event_grid_topic_name != ""
-    error_message = "event_grid_topic_name must not be an empty string. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the name of an existing topic."
+    condition     = var.event_grid_topic_name == null || trimspace(var.event_grid_topic_name) != ""
+    error_message = "event_grid_topic_name must not be empty or whitespace-only. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the name of an existing topic."
   }
 }
 
@@ -52,8 +52,8 @@ variable "event_grid_topic_resource_group" {
   default     = null
 
   validation {
-    condition     = var.event_grid_topic_resource_group != ""
-    error_message = "event_grid_topic_resource_group must not be an empty string. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the resource group holding an existing topic."
+    condition     = var.event_grid_topic_resource_group == null || trimspace(var.event_grid_topic_resource_group) != ""
+    error_message = "event_grid_topic_resource_group must not be empty or whitespace-only. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the resource group holding an existing topic."
   }
 
   # Cross-variable references in a validation block require Terraform >= 1.9,

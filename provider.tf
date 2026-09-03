@@ -26,27 +26,27 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.56"
+      version = ">= 4.56.0, < 5.0.0"
     }
     azapi = {
       source  = "azure/azapi"
-      version = "~> 2.8"
+      version = ">= 2.8.0, < 3.0.0"
     }
     local = {
       source  = "hashicorp/local"
-      version = "~> 2.6"
+      version = ">= 2.6.2, < 3.0.0"
     }
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 3.7"
+      version = ">= 3.7.0, < 4.0.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.8"
+      version = ">= 3.8.1, < 4.0.0"
     }
     archive = {
       source  = "hashicorp/archive"
-      version = "~> 2.7"
+      version = ">= 2.7.1, < 3.0.0"
     }
   }
   required_version = ">= 1.9.0, < 2.0.0"
