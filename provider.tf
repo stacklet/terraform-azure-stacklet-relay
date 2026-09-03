@@ -17,31 +17,36 @@
 # Note: Unlike AWS provider, Azure provider (azurerm) does not support
 # default_tags configuration. We use local.tags instead to achieve
 # consistent tagging across all resources.
+# Providers are constrained to the majors this module is known to work against.
+# In particular, azurerm 5.x renames or removes arguments used here on
+# azurerm_eventgrid_system_topic, azurerm_subnet and
+# azurerm_private_dns_zone_virtual_network_link, so the module does not even
+# validate against it. Do not widen these without testing the new major.
 terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">=4.56.0"
+      version = "~> 4.56"
     }
     azapi = {
       source  = "azure/azapi"
-      version = ">=2.8.0"
+      version = "~> 2.8"
     }
     local = {
       source  = "hashicorp/local"
-      version = ">=2.6.2"
+      version = "~> 2.6"
     }
     azuread = {
       source  = "hashicorp/azuread"
-      version = ">=3.7.0"
+      version = "~> 3.7"
     }
     random = {
       source  = "hashicorp/random"
-      version = ">=3.8.1"
+      version = "~> 3.8"
     }
     archive = {
       source  = "hashicorp/archive"
-      version = ">=2.7.1"
+      version = "~> 2.7"
     }
   }
   required_version = ">= 1.9.0, < 2.0.0"
