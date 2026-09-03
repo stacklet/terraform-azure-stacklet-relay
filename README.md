@@ -147,24 +147,24 @@ changes.
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.0 |
-| <a name="requirement_archive"></a> [archive](#requirement\_archive) | >=2.7.1 |
-| <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | >=2.8.0 |
-| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >=3.7.0 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >=4.56.0 |
-| <a name="requirement_local"></a> [local](#requirement\_local) | >=2.6.2 |
-| <a name="requirement_random"></a> [random](#requirement\_random) | >=3.8.1 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0, < 2.0.0 |
+| <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.7.1, < 3.0.0 |
+| <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | >= 2.8.0, < 3.0.0 |
+| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >= 3.7.0, < 4.0.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 4.56.0, < 5.0.0 |
+| <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.6.2, < 3.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1, < 4.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_archive"></a> [archive](#provider\_archive) | >=2.7.1 |
-| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | >=2.8.0 |
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | >=3.7.0 |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >=4.56.0 |
-| <a name="provider_local"></a> [local](#provider\_local) | >=2.6.2 |
-| <a name="provider_random"></a> [random](#provider\_random) | >=3.8.1 |
+| <a name="provider_archive"></a> [archive](#provider\_archive) | >= 2.7.1, < 3.0.0 |
+| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | >= 2.8.0, < 3.0.0 |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | >= 3.7.0, < 4.0.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.56.0, < 5.0.0 |
+| <a name="provider_local"></a> [local](#provider\_local) | >= 2.6.2, < 3.0.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1, < 4.0.0 |
 
 ## Modules
 
@@ -226,8 +226,8 @@ No modules.
 | <a name="input_aws_target_region"></a> [aws\_target\_region](#input\_aws\_target\_region) | AWS Target region for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_aws_target_role_name"></a> [aws\_target\_role\_name](#input\_aws\_target\_role\_name) | AWS Target role name for relay, to be provided by Stacklet. | `string` | n/a | yes |
 | <a name="input_azuread_application"></a> [azuread\_application](#input\_azuread\_application) | Azure AD Application. One per tenant. | `string` | `null` | no |
-| <a name="input_event_grid_topic_name"></a> [event\_grid\_topic\_name](#input\_event\_grid\_topic\_name) | System Topic Name for subscription events if it already exists | `string` | `null` | no |
-| <a name="input_event_grid_topic_resource_group"></a> [event\_grid\_topic\_resource\_group](#input\_event\_grid\_topic\_resource\_group) | System Topic resource group name for subscription events if it already exists | `string` | `null` | no |
+| <a name="input_event_grid_topic_name"></a> [event\_grid\_topic\_name](#input\_event\_grid\_topic\_name) | Name of an existing Subscription System Topic to attach to. Omit it to have the module create one. Must be set together with event\_grid\_topic\_resource\_group. | `string` | `null` | no |
+| <a name="input_event_grid_topic_resource_group"></a> [event\_grid\_topic\_resource\_group](#input\_event\_grid\_topic\_resource\_group) | Name of the resource group containing event\_grid\_topic\_name. Required when event\_grid\_topic\_name is set, and must be omitted otherwise. | `string` | `null` | no |
 | <a name="input_event_names"></a> [event\_names](#input\_event\_names) | Event Names to filter | `list(string)` | <pre>[<br/>  "Microsoft.Resources.ResourceWriteSuccess",<br/>  "Microsoft.Resources.ResourceActionSuccess",<br/>  "Microsoft.Resources.ResourceDeleteSuccess"<br/>]</pre> | no |
 | <a name="input_prefix"></a> [prefix](#input\_prefix) | A Prefix for all of the generated resources | `string` | n/a | yes |
 | <a name="input_resource_group_location"></a> [resource\_group\_location](#input\_resource\_group\_location) | Resource Group location for generated resources | `string` | `"East US"` | no |

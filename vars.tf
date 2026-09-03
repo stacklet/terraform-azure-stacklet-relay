@@ -37,14 +37,31 @@ variable "resource_group_location" {
 
 variable "event_grid_topic_name" {
   type        = string
-  description = "System Topic Name for subscription events if it already exists"
+  description = "Name of an existing Subscription System Topic to attach to. Omit it to have the module create one. Must be set together with event_grid_topic_resource_group."
   default     = null
+
+  validation {
+    condition     = var.event_grid_topic_name == null || trimspace(var.event_grid_topic_name) != ""
+    error_message = "event_grid_topic_name must not be empty or whitespace-only. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the name of an existing topic."
+  }
 }
 
 variable "event_grid_topic_resource_group" {
   type        = string
-  description = "System Topic resource group name for subscription events if it already exists"
+  description = "Name of the resource group containing event_grid_topic_name. Required when event_grid_topic_name is set, and must be omitted otherwise."
   default     = null
+
+  validation {
+    condition     = var.event_grid_topic_resource_group == null || trimspace(var.event_grid_topic_resource_group) != ""
+    error_message = "event_grid_topic_resource_group must not be empty or whitespace-only. Omit the argument entirely to have the module create a Subscription System Topic for you, or set it to the resource group holding an existing topic."
+  }
+
+  # Cross-variable references in a validation block require Terraform >= 1.9,
+  # which is the floor set in required_version.
+  validation {
+    condition     = (var.event_grid_topic_name == null) == (var.event_grid_topic_resource_group == null)
+    error_message = "event_grid_topic_name and event_grid_topic_resource_group must be set together or both omitted. Set both to attach to an existing Subscription System Topic, or omit both to have the module create one."
+  }
 }
 
 variable "aws_target_account" {
