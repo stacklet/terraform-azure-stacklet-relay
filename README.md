@@ -54,7 +54,9 @@ because Azure does not support event delivery through a private endpoint.
 
 The account is not private for the whole of a `terraform apply`. The module
 opens it to the public internet so the function app can upload its code, then
-closes it again later in the same run.
+closes it again later in a successful run. An apply that fails or stops before
+that step leaves public access on, so run it again and confirm the account is
+closed.
 
 Event Grid gets in through Azure's trusted-services exception, which the module
 sets with `bypass = "AzureServices"`. That is Azure's single blanket setting for
@@ -63,9 +65,10 @@ trusted type in your Microsoft Entra tenant can reach the account's public
 endpoint under it. It opens the network only, and every request still needs a
 valid credential or role assignment.
 
-If a policy in your tenant removes the exception, event delivery stops and
-nothing reports the loss. Terraform applies cleanly, the function app stays
-healthy, and the queue stops filling. Run `terraform apply` again to restore the
+If a policy in your tenant removes the exception, event delivery stops without
+failing anything you are likely to watch. Terraform applies cleanly and the
+function app stays healthy. The signals are the queue that stops filling and
+Event Grid's own delivery-failure count, which climbs as it retries. Run `terraform apply` again to restore the
 setting. The module re-applies the storage network configuration on every apply,
 so a policy that actively removes the exception strips it again each time.
 
