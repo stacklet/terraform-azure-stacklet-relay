@@ -210,6 +210,14 @@ resource "azapi_update_resource" "stacklet_storage_network" {
       publicNetworkAccess = "Disabled"
       networkAcls = {
         defaultAction = "Deny"
+
+        # Event Grid cannot deliver through a private endpoint, so the queue writes
+        # arrive over the trusted-service exception, which outranks the two settings
+        # above. This matches the ARM default, but the default is not a contract, and
+        # losing it stops event delivery with no error anywhere: the queue stays
+        # empty. Keep it explicit. "AzureServices" is an ARM enum string here, not the
+        # list that the azurerm provider takes for the same field.
+        bypass = "AzureServices"
       }
     }
   }

@@ -46,6 +46,29 @@ This system enables:
 - **Automated governance actions** - Automated remediation and policy enforcement
 - **Cross-cloud resource visibility** - Unified governance across Azure and AWS
 
+## Storage network access
+
+The relay's storage account is private. The function app reaches it over private
+endpoints, and Event Grid delivers to the queue from outside the network,
+because Azure does not support event delivery through a private endpoint.
+
+The account is not private for the whole of a `terraform apply`. The module
+opens it to the public internet so the function app can upload its code, then
+closes it again later in the same run.
+
+Event Grid gets in through Azure's trusted-services exception, which the module
+sets with `bypass = "AzureServices"`. That is Azure's single blanket setting for
+its whole trusted-services list, not an Event Grid rule, so any resource of a
+trusted type in your Microsoft Entra tenant can reach the account's public
+endpoint under it. It opens the network only, and every request still needs a
+valid credential or role assignment.
+
+If a policy in your tenant removes the exception, event delivery stops and
+nothing reports the loss. Terraform applies cleanly, the function app stays
+healthy, and the queue stops filling. Run `terraform apply` again to restore the
+setting. The module re-applies the storage network configuration on every apply,
+so a policy that actively removes the exception strips it again each time.
+
 ## Provider Configuration
 
 This module does not configure providers. The calling module must configure
