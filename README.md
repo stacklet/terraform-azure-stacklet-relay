@@ -68,9 +68,10 @@ valid credential or role assignment.
 If a policy in your tenant removes the exception, event delivery stops without
 failing anything you are likely to watch. Terraform applies cleanly and the
 function app stays healthy. The signals are the queue that stops filling and
-Event Grid's own delivery-failure count, which climbs as it retries. Run `terraform apply` again to restore the
-setting. The module re-applies the storage network configuration on every apply,
-so a policy that actively removes the exception strips it again each time.
+Event Grid's own delivery-failure count, which climbs as it retries. Run
+`terraform apply` again to restore the setting. The module re-applies the
+storage network configuration on every apply, so a policy that actively removes
+the exception strips it again each time.
 
 ## Provider Configuration
 
