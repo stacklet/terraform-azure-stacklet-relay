@@ -16,9 +16,13 @@ The system works through a four-step process:
 ### 2. Event Storage (Azure Storage Queue)
 - Events are queued in a private **Azure Storage Queue** for reliable processing
 - Uses CloudEvent schema v1.0 format for standardized event structure
-- The function app reads the queue over a private endpoint. Event Grid cannot
-  use one, so it delivers over Azure's trusted-services exception, which the
-  module sets on the storage account
+- The function app reads the queue over a private endpoint, but Event Grid
+  cannot use one, so it delivers over Azure's trusted-services exception
+- That exception is wider than Event Grid, and it is only a network rule. It is
+  Azure's blanket setting for the whole trusted-services list, so any resource
+  of a trusted type in your tenant can reach the account's public endpoint.
+  Reaching it is not using it: every request still needs a valid credential or
+  role assignment
 - A `terraform apply` opens the account to the internet briefly so the function
   app can upload its code, then closes it again at the end of a successful run.
   A failed apply leaves it open, so run it again and confirm the account is
@@ -29,7 +33,9 @@ The system works through a four-step process:
 > delivery stops without failing anything you are likely to watch. Terraform
 > still applies and the function app still reports healthy. The signals are the
 > queue that stops filling and Event Grid's delivery-failure count, which climbs
-> as it retries. Run `terraform apply` again to restore the setting.
+> as it retries. Run `terraform apply` again to restore the setting. A policy
+> that keeps removing it strips it again after each apply, so fix the policy
+> rather than re-applying.
 
 ### 3. Event Processing (Azure Function)
 - **Python-based Azure Function** processes events from the storage queue
