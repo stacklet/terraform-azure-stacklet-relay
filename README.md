@@ -20,7 +20,9 @@ The system works through a four-step process:
   use one, so it delivers over Azure's trusted-services exception, which the
   module sets on the storage account
 - A `terraform apply` opens the account to the internet briefly so the function
-  app can upload its code, then closes it again before the run ends
+  app can upload its code, then closes it again at the end of a successful run.
+  A failed apply leaves it open, so run it again and confirm the account is
+  closed
 
 > [!WARNING]
 > If a policy in your tenant removes the trusted-services exception, event
