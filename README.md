@@ -18,7 +18,7 @@ The system works through a four-step process:
 - Uses CloudEvent schema v1.0 format for standardized event structure
 - The function app reads the queue over a private endpoint, but Event Grid
   cannot use one, so it delivers over Azure's trusted-services exception
-- That exception is wider than Event Grid, and it is only a network rule. It is
+- That exception is wider than Event Grid, but it is only a network rule. It is
   Azure's blanket setting for the whole trusted-services list, so any resource
   of a trusted type in your tenant can reach the account's public endpoint.
   Reaching it is not using it: every request still needs a valid credential or
