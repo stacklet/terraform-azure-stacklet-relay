@@ -16,6 +16,18 @@ The system works through a four-step process:
 ### 2. Event Storage (Azure Storage Queue)
 - Events are queued in a private **Azure Storage Queue** for reliable processing
 - Uses CloudEvent schema v1.0 format for standardized event structure
+- The function app reads the queue over a private endpoint. Event Grid cannot
+  use one, so it delivers over Azure's trusted-services exception, which the
+  module sets on the storage account
+- A `terraform apply` opens the account to the internet briefly so the function
+  app can upload its code, then closes it again before the run ends
+
+> [!WARNING]
+> If a policy in your tenant removes the trusted-services exception, event
+> delivery stops without failing anything you are likely to watch. Terraform
+> still applies and the function app still reports healthy. The signals are the
+> queue that stops filling and Event Grid's delivery-failure count, which climbs
+> as it retries. Run `terraform apply` again to restore the setting.
 
 ### 3. Event Processing (Azure Function)
 - **Python-based Azure Function** processes events from the storage queue
@@ -45,33 +57,6 @@ This system enables:
 - **Real-time compliance monitoring** - Immediate visibility into compliance status
 - **Automated governance actions** - Automated remediation and policy enforcement
 - **Cross-cloud resource visibility** - Unified governance across Azure and AWS
-
-## Storage network access
-
-The relay's storage account is private. The function app reaches it over private
-endpoints, and Event Grid delivers to the queue from outside the network,
-because Azure does not support event delivery through a private endpoint.
-
-The account is not private for the whole of a `terraform apply`. The module
-opens it to the public internet so the function app can upload its code, then
-closes it again later in a successful run. An apply that fails or stops before
-that step leaves public access on, so run it again and confirm the account is
-closed.
-
-Event Grid gets in through Azure's trusted-services exception, which the module
-sets with `bypass = "AzureServices"`. That is Azure's single blanket setting for
-its whole trusted-services list, not an Event Grid rule, so any resource of a
-trusted type in your Microsoft Entra tenant can reach the account's public
-endpoint under it. It opens the network only, and every request still needs a
-valid credential or role assignment.
-
-If a policy in your tenant removes the exception, event delivery stops without
-failing anything you are likely to watch. Terraform applies cleanly and the
-function app stays healthy. The signals are the queue that stops filling and
-Event Grid's own delivery-failure count, which climbs as it retries. Run
-`terraform apply` again to restore the setting. The module re-applies the
-storage network configuration on every apply, so a policy that actively removes
-the exception strips it again each time.
 
 ## Provider Configuration
 

@@ -211,15 +211,12 @@ resource "azapi_update_resource" "stacklet_storage_network" {
       networkAcls = {
         defaultAction = "Deny"
 
-        # Event Grid cannot deliver through a private endpoint, so the queue writes
-        # arrive over the trusted-service exception, which outranks the two settings
-        # above. This is not the ARM default: a raw ARM create yields
-        # bypass = "None". The value this account carried before came from
-        # azurerm_storage_account, which sends "AzureServices" when the resource has
-        # no network_rules block. Pinning it here keeps event delivery off a provider
-        # default that a major version is free to change, and losing it stops
-        # delivery with no error anywhere: the queue stays empty. "AzureServices" is
-        # an ARM enum string, not the list azurerm takes for the same field.
+        # Event Grid cannot deliver through a private endpoint, so queue writes
+        # arrive over the trusted-service exception, which outranks the two
+        # settings above. Pinned rather than inherited from the azurerm default,
+        # since losing it stops delivery with no error anywhere: the queue just
+        # stays empty. "AzureServices" is an ARM enum string, not the list
+        # azurerm takes for the same field.
         bypass = "AzureServices"
       }
     }
