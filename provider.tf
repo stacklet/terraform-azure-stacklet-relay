@@ -49,7 +49,13 @@ terraform {
       version = ">= 2.7.1, < 3.0.0"
     }
   }
-  required_version = ">= 1.9.0, < 2.0.0"
+  # The floor is a Terraform line that still receives patches, not the oldest
+  # release that can run this module. 1.9 is where the cross-variable
+  # validations in vars.tf landed, but the module does not actually plan below
+  # 1.12: the blank-topic guards read `x == null || trimspace(x) != ""`, and
+  # Terraform did not short-circuit `||` until then. A supported floor clears
+  # both, and 1.13 and earlier no longer get security fixes.
+  required_version = ">= 1.14.0, < 2.0.0"
 }
 
 
