@@ -27,6 +27,15 @@ The system works through a four-step process:
   app can upload its code, then closes it again at the end of a successful run.
   A failed apply leaves it open, so run it again and confirm the account is
   closed
+- Event Grid signs each queue write with a system-assigned managed identity on
+  the system topic, which holds the `Storage Queue Data Message Sender` role on
+  the storage account. The account records these writes as `OAuth`. The
+  trusted-services exception opens the network; the identity and its role decide
+  whether the write is allowed
+- Event Grid also probes the queue's metadata, which that role does not cover, so
+  the account reports a steady count of failed `GetQueueMetadata` calls. Delivery
+  is unaffected. Granting a broader role to silence the probe would widen what
+  Event Grid can do to the queue, so the module leaves it
 
 > [!WARNING]
 > If a policy in your tenant removes the trusted-services exception, event
@@ -36,6 +45,27 @@ The system works through a four-step process:
 > as it retries. Run `terraform apply` again to restore the setting. A policy
 > that keeps removing it strips it again after each apply, so fix the policy
 > rather than re-applying.
+
+### Bring your own system topic
+
+Azure allows one system topic per subscription for subscription-level events. A
+subscription that already has one must pass it to the module through
+`event_grid_topic_name` and `event_grid_topic_resource_group`, so this is the
+normal path rather than a convenience.
+
+The module adds a system-assigned identity to the topic you supply, because a
+topic read through a data source cannot grow one on its own. The identity is the
+only field the module changes on that topic, and any user-assigned identities
+already there are kept. Delivery authentication is set per event subscription, so
+other event subscriptions on the same topic keep the authentication they had.
+
+Running the module against a supplied topic needs credentials that can write to
+that topic and can create role assignments on the relay's storage account.
+
+> [!WARNING]
+> If you manage the supplied topic in your own Terraform, add the system-assigned
+> identity there too. Otherwise the two configurations take turns adding and
+> removing it, and event delivery stops whenever yours wins.
 
 ### 3. Event Processing (Azure Function)
 - **Python-based Azure Function** processes events from the storage queue
@@ -195,6 +225,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [azapi_resource.stacklet_queue](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) | resource |
+| [azapi_update_resource.event_grid_topic_identity](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azapi_update_resource.stacklet_function_network](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azapi_update_resource.stacklet_storage_network](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azuread_app_role_assignment.stacklet_app_role_assignment](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/app_role_assignment) | resource |
@@ -214,6 +245,7 @@ No modules.
 | [azurerm_private_endpoint.stacklet_storage_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_private_endpoint.stacklet_storage_table](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_resource_group.stacklet_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_role_assignment.event_grid_queue_sender](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_blob](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
