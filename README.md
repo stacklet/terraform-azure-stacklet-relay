@@ -167,7 +167,7 @@ changes.
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0, < 2.0.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.14.0, < 2.0.0 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.7.1, < 3.0.0 |
 | <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | >= 2.8.0, < 3.0.0 |
 | <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >= 3.7.0, < 4.0.0 |

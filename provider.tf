@@ -49,7 +49,9 @@ terraform {
       version = ">= 2.7.1, < 3.0.0"
     }
   }
-  required_version = ">= 1.9.0, < 2.0.0"
+  # Require a Terraform version that has had recent updates. Note the module
+  # cannot plan below 1.12, where Terraform started short-circuiting `||`.
+  required_version = ">= 1.14.0, < 2.0.0"
 }
 
 
