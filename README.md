@@ -93,7 +93,8 @@ provider "azapi" {
 }
 
 module "azure_relay" {
-  source = "github.com/stacklet/terraform-azure-stacklet-relay?ref=<sha>"
+  source  = "stacklet/stacklet-relay/azure"
+  version = "0.1.0"
 
   prefix               = "your-prefix"
   aws_target_account   = "123456789012"
@@ -128,7 +129,8 @@ provider "azapi" {
 }
 
 module "azure_relay" {
-  source = "github.com/stacklet/terraform-azure-stacklet-relay?ref=<sha>"
+  source  = "stacklet/stacklet-relay/azure"
+  version = "0.1.0"
 
   providers = {
     azurerm = azurerm.workload
@@ -159,8 +161,18 @@ modules:
   of your `azurerm` provider
 
 No changes to deployed infrastructure are required. On your next
-`terraform plan` after updating the module SHA you should see 0 resource
-changes.
+`terraform plan` after moving `source` to the registry address and setting
+`version`, you should see 0 resource changes.
+
+## Versioning
+
+This module is published to the [Terraform Registry](https://registry.terraform.io/modules/stacklet/stacklet-relay/azure).
+Set `source` to the registry address and pin `version` to a release.
+
+`version` takes the usual constraint syntax. This module is pre-1.0, and on a
+0.x line a minor release is where it ships breaking changes, so pin at the
+patch level: `~> 0.1.0` accepts `0.1.1` and later patches and holds at `0.2.0`.
+Read the release notes before moving to a new minor.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
