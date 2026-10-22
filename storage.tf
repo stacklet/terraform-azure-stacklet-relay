@@ -215,8 +215,11 @@ resource "azapi_update_resource" "stacklet_storage_network" {
         # arrive over the trusted-service exception, which outranks the two
         # settings above. Pinned rather than inherited from the azurerm default,
         # since losing it stops delivery with no error anywhere: the queue just
-        # stays empty. "AzureServices" is an ARM enum string, not the list
-        # azurerm takes for the same field.
+        # stays empty. The role assignment in eventgrid.tf is the second
+        # precondition. Revoking it after the subscription exists fails this
+        # same silent way, though creating the subscription without it fails
+        # loudly instead. "AzureServices" is an ARM
+        # enum string, not the list azurerm takes for the same field.
         bypass = "AzureServices"
       }
     }
