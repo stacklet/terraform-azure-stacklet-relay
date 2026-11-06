@@ -2,6 +2,24 @@
 
 This Terraform module implements an **event forwarding system** that captures Azure resource events and relays them to Stacklet's AWS-based platform for real-time policy execution and governance. It creates a cross-cloud event bridge that enables Stacklet's governance capabilities to extend from AWS into Azure environments.
 
+## Usage
+
+Set `source` to the registry address and pin `version`, then fill in the inputs.
+[Standalone deployment](#standalone-deployment) has a complete example. Use
+[Embedded in a larger root module](#embedded-in-a-larger-root-module) instead if
+you already configure the `azurerm` and `azapi` providers yourself.
+
+### Prerequisites
+
+Applying this module requires permission to grant roles on the relay's storage
+account. That means `Owner` on the subscription, or `Contributor` plus
+`User Access Administrator`.
+
+If you set `event_grid_topic_name` to supply your own system topic, the
+credentials also need write access to that topic, because the module adds a
+managed identity to it. See
+[Bring your own system topic](#bring-your-own-system-topic).
+
 ## Architecture
 
 The system works through a four-step process:
@@ -27,6 +45,11 @@ The system works through a four-step process:
   app can upload its code, then closes it again at the end of a successful run.
   A failed apply leaves it open, so run it again and confirm the account is
   closed
+- Event Grid signs each queue write with a system-assigned managed identity on
+  the system topic, which holds the `Storage Queue Data Message Sender` role on
+  the storage account. The account records these writes as `OAuth`. The
+  trusted-services exception opens the network. The identity and its role decide
+  whether Azure allows the write
 
 > [!WARNING]
 > If a policy in your tenant removes the trusted-services exception, event
@@ -46,6 +69,27 @@ The system works through a four-step process:
 - Uses **Azure Managed Identity** to get an identity token
 - Performs **AssumeRoleWithWebIdentity** to obtain AWS credentials
 - Forwards events to **AWS EventBridge** in the target Stacklet account
+
+### Bring your own system topic
+
+Azure allows one system topic per subscription for subscription-level events, so
+a subscription that already has one must pass it to the module through
+`event_grid_topic_name` and `event_grid_topic_resource_group`. Running against a
+supplied topic needs credentials that can write to it, on top of the permissions
+under [Prerequisites](#prerequisites).
+
+The module adds a system-assigned identity to your topic. That identity is the
+only field it changes: any user-assigned identities already on the topic stay,
+and other event subscriptions on the topic keep the authentication they had.
+
+A later `terraform destroy` leaves that identity behind, because Terraform cannot
+remove a field from a resource it does not own. Remove it by hand if you want the
+topic exactly as it was.
+
+> [!WARNING]
+> If you manage the supplied topic in your own Terraform, add the system-assigned
+> identity there too. Otherwise the two configurations take turns adding and
+> removing it, and event delivery stops whenever yours wins.
 
 ## Key Components Deployed
 
@@ -94,7 +138,7 @@ provider "azapi" {
 
 module "azure_relay" {
   source  = "stacklet/stacklet-relay/azure"
-  version = "0.1.0"
+  version = "~> 0.1.0"
 
   prefix               = "your-prefix"
   aws_target_account   = "123456789012"
@@ -130,7 +174,7 @@ provider "azapi" {
 
 module "azure_relay" {
   source  = "stacklet/stacklet-relay/azure"
-  version = "0.1.0"
+  version = "~> 0.1.0"
 
   providers = {
     azurerm = azurerm.workload
@@ -149,6 +193,8 @@ module "azure_relay" {
 
 ## Migrating from a previous version
 
+### Provider configuration
+
 The following breaking changes were made to align with Terraform's
 recommended practice of not declaring provider configurations in reusable
 modules:
@@ -160,9 +206,32 @@ modules:
   `prevent_deletion_if_contains_resources = false` in the `features {}` block
   of your `azurerm` provider
 
-No changes to deployed infrastructure are required. On your next
+Those changes need nothing from your deployed infrastructure. On your next
 `terraform plan` after moving `source` to the registry address and setting
-`version`, you should see 0 resource changes.
+`version`, you should see 0 resource changes from them.
+
+### Event Grid delivery identity
+
+Version 0.1.1 moved Event Grid's queue delivery onto a managed identity. One
+`terraform apply` upgrades a running deployment, and the event subscription does
+not need recreating.
+
+If you supply your own system topic, the apply now writes to that topic rather
+than only reading it, so your credentials need write access to it. That is the
+only permission this release adds. See [Prerequisites](#prerequisites).
+
+Your plan will add a system-assigned identity to the system topic, create an
+`azurerm_role_assignment`, and add `delivery_identity` to the event subscription.
+Delivery moves onto the identity within a few minutes of the apply returning.
+To confirm it, read the storage account's `Transactions` metric split by the
+`Authentication` dimension, where `OAuth` means the identity carries delivery
+and `SAS` means the trusted-service path still does:
+
+```
+$ az monitor metrics list --resource "<storage-account-id>/queueServices/default" \
+    --metrics Transactions --filter "Authentication eq '*' and ApiName eq '*'" \
+    --aggregation Total --interval PT1M -o table
+```
 
 ## Versioning
 
@@ -207,6 +276,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [azapi_resource.stacklet_queue](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) | resource |
+| [azapi_update_resource.event_grid_topic_identity](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azapi_update_resource.stacklet_function_network](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azapi_update_resource.stacklet_storage_network](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
 | [azuread_app_role_assignment.stacklet_app_role_assignment](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/app_role_assignment) | resource |
@@ -226,6 +296,7 @@ No modules.
 | [azurerm_private_endpoint.stacklet_storage_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_private_endpoint.stacklet_storage_table](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_resource_group.stacklet_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_role_assignment.event_grid_queue_sender](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_blob](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.function_storage_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
