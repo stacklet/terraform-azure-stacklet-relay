@@ -51,22 +51,15 @@ resource "azurerm_eventgrid_system_topic" "azure_rm_events" {
   }
 }
 
-# Event Grid signs its queue writes with this identity. It must be
-# system-assigned, because Azure rejects a user-assigned identity for delivery
-# to a storage queue.
+# Event Grid signs its queue writes with this identity. Azure rejects a
+# user-assigned identity for storage queue delivery, so it must be
+# system-assigned.
 #
-# Patched on rather than declared inline, for both topic paths. A supplied topic
-# has to be patched, since Terraform reads it through a data source and a data
-# source can only read. A topic this module creates could carry the identity
-# inline, but then upgrading a deployment that predates it fails at plan: the
-# topic in state has an empty identity list, so reading a principal id out of it
-# yields null rather than a value known after apply, and the role assignment
-# below rejects that. Reading the id from this resource keeps both paths
-# symmetric and both plannable.
-#
-# On a supplied topic this is the one field the module changes. Azure sets
-# delivery authentication per subscription, so every other event subscription on
-# the topic keeps whatever it had.
+# Patched rather than declared inline, because a supplied topic comes from a
+# data source, which can only read, and because an inline block breaks the
+# upgrade path: a topic already in state has an empty identity list, so its
+# principal id reads as null instead of known-after-apply and the plan fails.
+# The identity is the only field written on a supplied topic.
 resource "azapi_update_resource" "event_grid_topic_identity" {
   type        = "Microsoft.EventGrid/systemTopics@2025-02-15"
   resource_id = local.event_grid_topic.id
@@ -88,10 +81,9 @@ resource "azapi_update_resource" "event_grid_topic_identity" {
 }
 
 resource "azurerm_role_assignment" "event_grid_queue_sender" {
-  # Account scope, not the queue, even though only one queue is written to.
-  # Event Grid validates this role when the event subscription is created, and
-  # it only accepts an assignment at the account. A queue-scoped assignment
-  # fails the create with "Managed Identity Authorization Error".
+  # Must be account scope rather than queue: Event Grid validates this role at
+  # subscription create, which only accepts an account-level assignment. Queue
+  # scope fails the create.
   scope                = azurerm_storage_account.stacklet.id
   role_definition_name = "Storage Queue Data Message Sender"
   principal_id         = local.event_grid_topic_principal_id

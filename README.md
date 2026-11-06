@@ -2,6 +2,24 @@
 
 This Terraform module implements an **event forwarding system** that captures Azure resource events and relays them to Stacklet's AWS-based platform for real-time policy execution and governance. It creates a cross-cloud event bridge that enables Stacklet's governance capabilities to extend from AWS into Azure environments.
 
+## Usage
+
+Set `source` to the registry address and pin `version`, then fill in the inputs.
+[Standalone deployment](#standalone-deployment) has a complete example. Use
+[Embedded in a larger root module](#embedded-in-a-larger-root-module) instead if
+you already configure the `azurerm` and `azapi` providers yourself.
+
+### Prerequisites
+
+Applying this module requires permission to grant roles on the relay's storage
+account. That means `Owner` on the subscription, or `Contributor` plus
+`User Access Administrator`.
+
+If you set `event_grid_topic_name` to supply your own system topic, the
+credentials also need write access to that topic, because the module adds a
+managed identity to it. See
+[Bring your own system topic](#bring-your-own-system-topic).
+
 ## Architecture
 
 The system works through a four-step process:
@@ -32,10 +50,6 @@ The system works through a four-step process:
   the storage account. The account records these writes as `OAuth`. The
   trusted-services exception opens the network. The identity and its role decide
   whether Azure allows the write
-- Event Grid also probes the queue's metadata, which that role does not cover, so
-  the account reports a steady count of failed `GetQueueMetadata` calls. Delivery
-  is unaffected. Granting a broader role to silence the probe would widen what
-  Event Grid can do to the queue, so the module leaves it
 
 > [!WARNING]
 > If a policy in your tenant removes the trusted-services exception, event
@@ -58,25 +72,19 @@ The system works through a four-step process:
 
 ### Bring your own system topic
 
-Azure allows one system topic per subscription for subscription-level events. A
-subscription that already has one must pass it to the module through
-`event_grid_topic_name` and `event_grid_topic_resource_group`, so this is the
-normal path rather than a convenience.
+Azure allows one system topic per subscription for subscription-level events, so
+a subscription that already has one must pass it to the module through
+`event_grid_topic_name` and `event_grid_topic_resource_group`. Running against a
+supplied topic needs credentials that can write to it, on top of the permissions
+under [Prerequisites](#prerequisites).
 
-The module adds a system-assigned identity to the topic you supply. Terraform
-reads a supplied topic through a data source, and a data source can only read, so
-the module patches the identity on separately. The identity is the only field the
-module changes on that topic, and the module keeps any user-assigned identities
-already there. Azure sets delivery authentication per event subscription, so
-other event subscriptions on the same topic keep the authentication they had.
+The module adds a system-assigned identity to your topic. That identity is the
+only field it changes: any user-assigned identities already on the topic stay,
+and other event subscriptions on the topic keep the authentication they had.
 
-Running the module against a supplied topic needs credentials that can write to
-that topic and can create role assignments on the relay's storage account.
-
-A later `terraform destroy` removes everything the module created, but leaves
-the system-assigned identity on the topic you supplied. Terraform can add a
-field to a resource it does not own and cannot take it back off. Remove the
-identity by hand if you want the topic exactly as it was.
+A later `terraform destroy` leaves that identity behind, because Terraform cannot
+remove a field from a resource it does not own. Remove it by hand if you want the
+topic exactly as it was.
 
 > [!WARNING]
 > If you manage the supplied topic in your own Terraform, add the system-assigned
@@ -130,7 +138,7 @@ provider "azapi" {
 
 module "azure_relay" {
   source  = "stacklet/stacklet-relay/azure"
-  version = "0.1.0"
+  version = "~> 0.1.0"
 
   prefix               = "your-prefix"
   aws_target_account   = "123456789012"
@@ -166,7 +174,7 @@ provider "azapi" {
 
 module "azure_relay" {
   source  = "stacklet/stacklet-relay/azure"
-  version = "0.1.0"
+  version = "~> 0.1.0"
 
   providers = {
     azurerm = azurerm.workload
@@ -204,14 +212,16 @@ Those changes need nothing from your deployed infrastructure. On your next
 
 ### Event Grid delivery identity
 
-A later release moved Event Grid's queue delivery onto a managed identity, and
-that one does change deployed infrastructure. Expect your next plan to create an
-`azurerm_role_assignment`, add a system-assigned identity to the system topic,
-and add `delivery_identity` to the event subscription. The apply needs credentials that
-can create role assignments on the relay's storage account, which Contributor
-alone does not grant.
+Version 0.1.1 moved Event Grid's queue delivery onto a managed identity. One
+`terraform apply` upgrades a running deployment, and the event subscription does
+not need recreating.
 
-One apply is enough, and the event subscription does not need recreating.
+If you supply your own system topic, the apply now writes to that topic rather
+than only reading it, so your credentials need write access to it. That is the
+only permission this release adds. See [Prerequisites](#prerequisites).
+
+Your plan will add a system-assigned identity to the system topic, create an
+`azurerm_role_assignment`, and add `delivery_identity` to the event subscription.
 Delivery moves onto the identity within a few minutes of the apply returning.
 To confirm it, read the storage account's `Transactions` metric split by the
 `Authentication` dimension, where `OAuth` means the identity carries delivery
@@ -222,14 +232,6 @@ $ az monitor metrics list --resource "<storage-account-id>/queueServices/default
     --metrics Transactions --filter "Authentication eq '*' and ApiName eq '*'" \
     --aggregation Total --interval PT1M -o table
 ```
-
-A few `OAuth` rows with `AuthorizationError` right after the apply are normal.
-Entra can take a few minutes to publish the new role assignment, and the
-subscription retries until it does.
-
-If you supply your own system topic, the apply also writes to that topic, which
-the module previously only read, so your credentials need write access to it.
-See the bring-your-own-topic section above for what the module changes there.
 
 ## Versioning
 

@@ -212,14 +212,11 @@ resource "azapi_update_resource" "stacklet_storage_network" {
         defaultAction = "Deny"
 
         # Event Grid cannot deliver through a private endpoint, so queue writes
-        # arrive over the trusted-service exception, which outranks the two
-        # settings above. Pinned rather than inherited from the azurerm default,
-        # since losing it stops delivery with no error anywhere: the queue just
-        # stays empty. The role assignment in eventgrid.tf is the second
-        # precondition. Revoking it after the subscription exists fails this
-        # same silent way, though creating the subscription without it fails
-        # loudly instead. "AzureServices" is an ARM
-        # enum string, not the list azurerm takes for the same field.
+        # arrive over this exception, which outranks the two settings above.
+        # Losing it stops delivery silently: the queue just stays empty.
+        # Narrowing it to a resourceAccessRules entry naming the topic delivers
+        # in testing, but needs the topic id threaded through for supplied ones.
+        # "AzureServices" is an ARM enum string, not the list azurerm takes.
         bypass = "AzureServices"
       }
     }
