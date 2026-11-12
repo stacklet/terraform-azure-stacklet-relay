@@ -1,130 +1,58 @@
+# terraform-azure-stacklet-relay
+
+Azure event relay for Stacklet customers.
+
+This module forwards Azure resource events to Stacklet's platform in AWS, so
+that policies act on changes in your subscription as they happen. It captures
+subscription-level events with Event Grid, queues them, and runs an Azure
+Function that forwards them to an EventBridge bus in Stacklet's account.
+
 ## Overview
 
-This Terraform module implements an **event forwarding system** that captures Azure resource events and relays them to Stacklet's AWS-based platform for real-time policy execution and governance. It creates a cross-cloud event bridge that enables Stacklet's governance capabilities to extend from AWS into Azure environments.
+This module creates the following in a single subscription:
+
+* a Resource Group holding everything below
+* an Event Grid system topic for subscription-level events, or an attachment to
+  one you already have
+* a Storage Account and queue, holding events until the function reads them
+* a Virtual Network and private endpoints, keeping the function's traffic off
+  the public internet
+* a Linux Function App running the Python relay, with Application Insights
+* an Entra ID application and service principal, and a user-assigned identity,
+  for the cross-cloud authentication
+
+Apply it once for each subscription whose events you want in Stacklet.
+
+## Prerequisites
+
+**Owner on the subscription**, or Contributor paired with User Access
+Administrator. The module assigns roles on the Storage Account it creates, which
+Contributor alone cannot do.
+
+**Write access to your own system topic**, if you set `event_grid_topic_name` to
+supply one. The module adds a managed identity to that topic. See
+[Bring your own system topic](#bring-your-own-system-topic).
+
+**`azurerm` and `azapi` providers configured by the calling module**, with the
+target subscription set on each. This module declares no provider configuration
+of its own. The `azuread` provider configures itself from your Azure
+credentials.
+
+Credentials come from the standard Azure authentication chain. For local use,
+run `az login`. For automated deployments, set `ARM_CLIENT_ID`,
+`ARM_CLIENT_SECRET` and `ARM_TENANT_ID`, or set `client_id`, `client_secret` and
+`tenant_id` on the provider blocks.
 
 ## Usage
 
-Set `source` to the registry address and pin `version`, then fill in the inputs.
-[Standalone deployment](#standalone-deployment) has a complete example. Use
-[Embedded in a larger root module](#embedded-in-a-larger-root-module) instead if
-you already configure the `azurerm` and `azapi` providers yourself.
-
-### Prerequisites
-
-Applying this module requires permission to grant roles on the relay's storage
-account. That means `Owner` on the subscription, or `Contributor` plus
-`User Access Administrator`.
-
-If you set `event_grid_topic_name` to supply your own system topic, the
-credentials also need write access to that topic, because the module adds a
-managed identity to it. See
-[Bring your own system topic](#bring-your-own-system-topic).
-
-## Architecture
-
-The system works through a four-step process:
-
-### 1. Event Capture (Azure EventGrid)
-- Sets up an **Azure EventGrid System Topic** to capture subscription-level events
-- By default monitors these resource events:
-  - `Microsoft.Resources.ResourceWriteSuccess` (resource creation/updates)
-  - `Microsoft.Resources.ResourceActionSuccess` (resource actions)
-  - `Microsoft.Resources.ResourceDeleteSuccess` (resource deletions)
-
-### 2. Event Storage (Azure Storage Queue)
-- Events are queued in a private **Azure Storage Queue** for reliable processing
-- Uses CloudEvent schema v1.0 format for standardized event structure
-- The function app reads the queue over a private endpoint, but Event Grid
-  cannot use one, so it delivers over Azure's trusted-services exception
-- That exception is wider than Event Grid, but it is only a network rule. It is
-  Azure's blanket setting for the whole trusted-services list, so any resource
-  of a trusted type in your tenant can reach the account's public endpoint.
-  Reaching it is not using it: every request still needs a valid credential or
-  role assignment
-- A `terraform apply` opens the account to the internet briefly so the function
-  app can upload its code, then closes it again at the end of a successful run.
-  A failed apply leaves it open, so run it again and confirm the account is
-  closed
-- Event Grid signs each queue write with a system-assigned managed identity on
-  the system topic, which holds the `Storage Queue Data Message Sender` role on
-  the storage account. The account records these writes as `OAuth`. The
-  trusted-services exception opens the network. The identity and its role decide
-  whether Azure allows the write
-
-> [!WARNING]
-> If a policy in your tenant removes the trusted-services exception, event
-> delivery stops without failing anything you are likely to watch. Terraform
-> still applies and the function app still reports healthy. The signals are the
-> queue that stops filling and Event Grid's delivery-failure count, which climbs
-> as it retries. Run `terraform apply` again to restore the setting. A policy
-> that keeps removing it strips it again after each apply, so fix the policy
-> rather than re-applying.
-
-### 3. Event Processing (Azure Function)
-- **Python-based Azure Function** processes events from the storage queue
-- Uses **queue trigger** to automatically process incoming events
-- Runs on Linux App Service Plan with Python 3.10
-
-### 4. Cross-Cloud Authentication & Event Forwarding
-- Uses **Azure Managed Identity** to get an identity token
-- Performs **AssumeRoleWithWebIdentity** to obtain AWS credentials
-- Forwards events to **AWS EventBridge** in the target Stacklet account
-
-### Bring your own system topic
-
-Azure allows one system topic per subscription for subscription-level events, so
-a subscription that already has one must pass it to the module through
-`event_grid_topic_name` and `event_grid_topic_resource_group`. Running against a
-supplied topic needs credentials that can write to it, on top of the permissions
-under [Prerequisites](#prerequisites).
-
-The module adds a system-assigned identity to your topic. That identity is the
-only field it changes: any user-assigned identities already on the topic stay,
-and other event subscriptions on the topic keep the authentication they had.
-
-A later `terraform destroy` leaves that identity behind, because Terraform cannot
-remove a field from a resource it does not own. Remove it by hand if you want the
-topic exactly as it was.
-
-> [!WARNING]
-> If you manage the supplied topic in your own Terraform, add the system-assigned
-> identity there too. Otherwise the two configurations take turns adding and
-> removing it, and event delivery stops whenever yours wins.
-
-## Key Components Deployed
-
-1. **Azure Resource Group** - Contains all module resources
-2. **Azure EventGrid System Topic** - Captures subscription-level events
-3. **Azure Virtual Network** - Keeps all network traffic private
-4. **Azure Storage Account & Queue** - Provides reliable event storage
-5. **Azure Function App** - Handles event processing and forwarding
-6. **Azure Application Insights** - Enables monitoring and logging
-7. **Azure AD Application & Service Principal** - Manages cross-cloud authentication
-8. **User Assigned Identity** - Provides managed identity for the function
-
-## Benefits
-
-This system enables:
-- **Event-driven policy execution** - Real-time response to Azure resource changes
-- **Real-time compliance monitoring** - Immediate visibility into compliance status
-- **Automated governance actions** - Automated remediation and policy enforcement
-- **Cross-cloud resource visibility** - Unified governance across Azure and AWS
-
-## Provider Configuration
-
-This module does not configure providers. The calling module must configure
-`azurerm` and `azapi` providers with the target subscription. The `azuread`
-provider is configured automatically from your Azure credentials.
-
-Credentials are sourced from the standard Azure authentication chain.
-For local use, authenticate via `az login`. For automated deployments,
-supply credentials via environment variables (`ARM_CLIENT_ID`,
-`ARM_CLIENT_SECRET`, `ARM_TENANT_ID`) or by setting `client_id`,
-`client_secret`, and `tenant_id` directly on your provider blocks.
+The module is published to the
+[Terraform Registry](https://registry.terraform.io/modules/stacklet/stacklet-relay/azure).
+Set `source` to the registry address and pin `version` to a release, then fill
+in the inputs. See [Versioning](#versioning) for the constraint to pin with.
 
 ### Standalone deployment
 
-The common case — deploying the relay directly into a single subscription:
+The common case, deploying the relay directly into a single subscription:
 
 ```hcl
 provider "azurerm" {
@@ -191,26 +119,37 @@ module "azure_relay" {
 }
 ```
 
-## Migrating from a previous version
+### Bring your own system topic
 
-### Provider configuration
+Azure allows one system topic per subscription for subscription-level events, so
+a subscription that already has one must pass it to the module through
+`event_grid_topic_name` and `event_grid_topic_resource_group`. Running against a
+supplied topic needs credentials that can write to it, on top of the permissions
+under [Prerequisites](#prerequisites).
 
-The following breaking changes were made to align with Terraform's
-recommended practice of not declaring provider configurations in reusable
-modules:
+The module adds a system-assigned identity to your topic. That identity is the
+only field it changes: any user-assigned identities already on the topic stay,
+and other event subscriptions on the topic keep the authentication they had.
 
-- `subscription_id` input variable removed — set `subscription_id` directly
-  on your `azurerm` and `azapi` provider blocks instead
-- `force_delete_resource_group` input variable removed — to allow deletion
-  of a non-empty resource group, set
-  `prevent_deletion_if_contains_resources = false` in the `features {}` block
-  of your `azurerm` provider
+A later `terraform destroy` leaves that identity behind, because Terraform cannot
+remove a field from a resource it does not own. Remove it by hand if you want the
+topic exactly as it was.
 
-Those changes need nothing from your deployed infrastructure. On your next
-`terraform plan` after moving `source` to the registry address and setting
-`version`, you should see 0 resource changes from them.
+> [!WARNING]
+> If you manage the supplied topic in your own Terraform, add the system-assigned
+> identity there too. Otherwise the two configurations take turns adding and
+> removing it, and event delivery stops whenever yours wins.
 
-### Event Grid delivery identity
+## Versioning
+
+`version` takes the usual constraint syntax. This module is pre-1.0, and on a
+0.x line a minor release is where it ships breaking changes, so pin at the
+patch level: `~> 0.1.0` accepts `0.1.1` and later patches and holds at `0.2.0`.
+Read the release notes before moving to a new minor.
+
+## Upgrade notes
+
+### Upgrading to 0.1.1
 
 Version 0.1.1 moved Event Grid's queue delivery onto a managed identity. One
 `terraform apply` upgrades a running deployment, and the event subscription does
@@ -221,11 +160,51 @@ than only reading it, so your credentials need write access to it. That is the
 only permission this release adds. See [Prerequisites](#prerequisites).
 
 Your plan will add a system-assigned identity to the system topic, create an
-`azurerm_role_assignment`, and add `delivery_identity` to the event subscription.
-Delivery moves onto the identity within a few minutes of the apply returning.
-To confirm it, read the storage account's `Transactions` metric split by the
-`Authentication` dimension, where `OAuth` means the identity carries delivery
-and `SAS` means the trusted-service path still does:
+`azurerm_role_assignment`, and add `delivery_identity` to the event
+subscription. Delivery moves onto the identity within a few minutes of the apply
+returning. See
+[Confirming that Event Grid delivers under the identity](#confirming-that-event-grid-delivers-under-the-identity).
+
+### Provider configuration changes
+
+The following breaking changes were made to align with Terraform's
+recommended practice of not declaring provider configurations in reusable
+modules:
+
+- `subscription_id` input variable removed: set `subscription_id` directly
+  on your `azurerm` and `azapi` provider blocks instead
+- `force_delete_resource_group` input variable removed: to allow deletion
+  of a non-empty resource group, set
+  `prevent_deletion_if_contains_resources = false` in the `features {}` block
+  of your `azurerm` provider
+
+Those changes need nothing from your deployed infrastructure. On your next
+`terraform plan` after moving `source` to the registry address and setting
+`version`, you should see 0 resource changes from them.
+
+## Troubleshooting
+
+### Event delivery stops, and nothing reports a failure
+
+A policy in your tenant has most likely removed the trusted-services exception
+on the Storage Account. Terraform still applies and the function app still
+reports healthy. The signals are the queue that stops filling and Event Grid's
+delivery-failure count, which climbs as it retries.
+
+Run `terraform apply` again to restore the setting. A policy that keeps removing
+it strips it again after each apply, so fix the policy rather than re-applying.
+
+### A failed apply leaves the Storage Account open to the internet
+
+An apply opens the account briefly so the function app can upload its code, then
+closes it again at the end of a successful run. A run that fails in between
+leaves it open. Apply again, and confirm that the account is closed.
+
+### Confirming that Event Grid delivers under the identity
+
+Read the Storage Account's `Transactions` metric split by the `Authentication`
+dimension. `OAuth` means the managed identity carries delivery. `SAS` means the
+trusted-service path still does.
 
 ```
 $ az monitor metrics list --resource "<storage-account-id>/queueServices/default" \
@@ -233,15 +212,29 @@ $ az monitor metrics list --resource "<storage-account-id>/queueServices/default
     --aggregation Total --interval PT1M -o table
 ```
 
-## Versioning
+## How it works
 
-This module is published to the [Terraform Registry](https://registry.terraform.io/modules/stacklet/stacklet-relay/azure).
-Set `source` to the registry address and pin `version` to a release.
+Event Grid captures the subscription-level events named in `event_names` and
+writes them to the Storage Queue in CloudEvents 1.0 format. The Function App,
+running Python on a Linux App Service Plan, triggers on that queue. For each
+event it exchanges its managed identity token for AWS credentials through
+`AssumeRoleWithWebIdentity`, then puts the event on the EventBridge bus in
+Stacklet's account.
 
-`version` takes the usual constraint syntax. This module is pre-1.0, and on a
-0.x line a minor release is where it ships breaking changes, so pin at the
-patch level: `~> 0.1.0` accepts `0.1.1` and later patches and holds at `0.2.0`.
-Read the release notes before moving to a new minor.
+### Reaching the queue
+
+The function app reads the queue over a private endpoint. Event Grid cannot use
+one, so it delivers over Azure's trusted-services exception. That exception is
+Azure's blanket setting for the whole trusted-services list, so any resource of
+a trusted type in your tenant can reach the account's public endpoint. Reaching
+it is not using it: every request still needs a valid credential or role
+assignment.
+
+Event Grid signs each queue write with a system-assigned managed identity on the
+system topic, which holds the `Storage Queue Data Message Sender` role on the
+Storage Account. The account records those writes as `OAuth`. The exception
+opens the network, and the identity and its role decide whether Azure allows the
+write.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
