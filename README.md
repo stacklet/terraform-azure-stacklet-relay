@@ -138,10 +138,9 @@ A later `terraform destroy` leaves that identity behind, because Terraform canno
 remove a field from a resource it does not own. Remove it by hand if you want the
 topic exactly as it was.
 
-> [!WARNING]
-> If you manage the supplied topic in your own Terraform, add the system-assigned
-> identity there too. Otherwise the two configurations take turns adding and
-> removing it, and event delivery stops whenever yours wins.
+**If you manage the supplied topic in your own Terraform, add the
+system-assigned identity there too.** Otherwise the two configurations take
+turns adding and removing it, and event delivery stops whenever yours wins.
 
 ## Versioning
 
