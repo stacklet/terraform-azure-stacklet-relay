@@ -18,8 +18,11 @@ This module creates the following in a single subscription:
 * a Virtual Network and private endpoints, keeping the function's traffic off
   the public internet
 * a Linux Function App running the Python relay, with Application Insights
-* an Entra ID application and service principal, and a user-assigned identity,
-  for the cross-cloud authentication
+* a user-assigned identity for the function app
+* an Entra ID application and service principal for the cross-cloud
+  authentication, unless you pass an existing one through
+  `azuread_application`. Azure wants a single application per tenant, so a
+  second subscription reuses the first one's
 
 Apply it once for each subscription whose events you want in Stacklet.
 
@@ -186,13 +189,18 @@ Those changes need nothing from your deployed infrastructure. On your next
 
 ### Event delivery stops, and nothing reports a failure
 
-A policy in your tenant has most likely removed the trusted-services exception
-on the Storage Account. Terraform still applies and the function app still
-reports healthy. The signals are the queue that stops filling and Event Grid's
-delivery-failure count, which climbs as it retries.
+Something in your tenant has most likely removed one of the two settings that
+Event Grid needs to reach the queue: the trusted-services exception on the
+Storage Account, which lets it onto the network, or the
+`Storage Queue Data Message Sender` assignment on the relay's system topic
+identity, which lets it write. Losing either one stops delivery the same way.
+Terraform still applies and the function app still reports healthy. The signals
+are the queue that stops filling and Event Grid's delivery-failure count, which
+climbs as it retries.
 
-Run `terraform apply` again to restore the setting. A policy that keeps removing
-it strips it again after each apply, so fix the policy rather than re-applying.
+Run `terraform apply` again. It restores both. A policy that keeps stripping
+either one strips it again after each apply, so fix the policy rather than
+re-applying.
 
 ### A failed apply leaves the Storage Account open to the internet
 
