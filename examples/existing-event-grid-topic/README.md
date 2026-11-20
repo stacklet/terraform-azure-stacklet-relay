@@ -6,7 +6,9 @@ already exists, whatever created it, the module attaches to it rather than
 creating a second.
 
 `event_grid_topic_name` and `event_grid_topic_resource_group` are required
-together. Omit both and the module creates the topic, which is the
+together, and both values in `main.tf` are placeholders. Replace them with the
+name of the topic the subscription already has and the resource group holding
+it. Omit both instead and the module creates the topic, which is the
 [default example](../default). Supplying a topic needs credentials that can
 write to it, because the module adds a system-assigned identity, and a later
 `terraform destroy` leaves that identity behind. If you manage the topic in your
