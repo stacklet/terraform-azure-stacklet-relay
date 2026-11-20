@@ -15,11 +15,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # The onboarding path Stacklet documents: the module creates an Event Grid
-# Subscription System Topic for the subscription it runs against.
-#
-# The values under "Stacklet provided values" come from the Stacklet deployment
-# the relay sends events to. A real deployment hands them to the customer in a
-# generated copy of this file.
+# Subscription System Topic for the subscription it runs against. See README.md
+# beside this file.
 
 # The caller declares the Terraform and provider versions, as a real caller
 # would, matching what the module supports. Terraform intersects these with the

@@ -14,20 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# For a subscription that already has an Event Grid Subscription System Topic.
-# Azure allows one per subscription for subscription-level events, so wherever
-# one already exists, whatever created it, the module attaches to it rather
-# than creating a second.
-#
-# event_grid_topic_name and event_grid_topic_resource_group below are required
-# together. Omit both and the module creates the topic, which is the default
-# example. Supplying one needs credentials that can write to it, because the
-# module adds a system-assigned identity, and a later destroy leaves that
-# identity behind. See "Bring your own system topic" in the module README.
-#
-# The values under "Stacklet provided values" come from the Stacklet deployment
-# the relay sends events to. A real deployment hands them to the customer in a
-# generated copy of this file.
+# For a subscription that already has an Event Grid Subscription System Topic,
+# which the module attaches to rather than creating a second. Supplying one
+# carries consequences a destroy does not undo. See README.md beside this file.
 
 # The caller declares the Terraform and provider versions, as a real caller
 # would, matching what the module supports. Terraform intersects these with the

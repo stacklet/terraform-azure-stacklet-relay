@@ -53,6 +53,11 @@ The module is published to the
 Set `source` to the registry address and pin `version` to a release, then fill
 in the inputs. See [Versioning](#versioning) for the constraint to pin with.
 
+[`examples/`](examples) holds a working root module for each of the two
+onboarding shapes, one where the module creates the Event Grid system topic and
+one where it attaches to an existing one. The registry lists them alongside this
+page.
+
 ### Standalone deployment
 
 The common case, deploying the relay directly into a single subscription:
