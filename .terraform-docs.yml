@@ -3,12 +3,5 @@ formatter: markdown
 output:
   file: README.md
 
-# The examples are rendered as their own registry pages, so each one gets the
-# same generated tables as the root module. Without this, `lint-docs` would
-# check the root README and leave the examples' to drift.
-recursive:
-  enabled: true
-  path: examples
-
 settings:
   lockfile: false
