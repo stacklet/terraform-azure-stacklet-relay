@@ -66,6 +66,13 @@ jobs:
           # defaults, so CI would check the docs against a different
           # configuration than `just docs` uses.
           config-file: .terraform-docs.yml
+          # Recursion is set here rather than in .terraform-docs.yml, which
+          # validate-min-terraform also reads: that job runs terraform-docs with
+          # --output-file '' over a read-only mount, and terraform-docs rejects
+          # that combination with --recursive. Keep these in step with the
+          # `docs` recipe in the justfile.
+          recursive: true
+          recursive-path: examples
           fail-on-diff: true
 
   validate-min-terraform:
